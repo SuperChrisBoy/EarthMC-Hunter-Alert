@@ -34,13 +34,14 @@ class StandaloneAndLayoutTest {
     @Test void directHttpHandlesProfilesOutlaws304FailureAndDisconnect() throws Exception {
         var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
         AtomicInteger mode=new AtomicInteger(200),requests=new AtomicInteger(); AtomicReference<String> query=new AtomicReference<>();
+        AtomicReference<String> town=new AtomicReference<>("Example");
         server.createContext("/",exchange -> {
             requests.incrementAndGet(); String path=exchange.getRequestURI().getPath();
             int status=path.equals("/map") ? mode.get() : 200;
             String body=switch(path) {
                 case "/map" -> "{\"players\":[{\"name\":\"Hunter\",\"uuid\":\"123456781234123412341234567890ab\",\"world\":\"minecraft_overworld\",\"x\":42,\"z\":84}]}";
                 case "/towns" -> exchange.getRequestMethod().equals("GET") ? "[{\"name\":\"Example\"}]" : "[{\"name\":\"Example\",\"nation\":{\"name\":\"Nation\"},\"coordinates\":{\"spawn\":{\"world\":\"earth\",\"x\":100,\"z\":200}},\"outlaws\":[{\"name\":\"Hunter\"},{\"name\":\"Hunter\"}]}]";
-                case "/players" -> "[{\"name\":\"Hunter\",\"town\":{\"name\":\"Example\"},\"nation\":{\"name\":\"Nation\"}}]";
+                case "/players" -> "[{\"name\":\"Hunter\",\"town\":{\"name\":\""+town.get()+"\"},\"nation\":{\"name\":\"Nation\"}}]";
                 default -> "[]";
             };
             if(exchange.getRequestMethod().equals("POST")) query.set(new String(exchange.getRequestBody().readAllBytes(),StandardCharsets.UTF_8));
@@ -66,6 +67,9 @@ class StandaloneAndLayoutTest {
             mode.set(503); provider.tick(System.currentTimeMillis()+8000,new HunterAlertConfig());
             await(() -> !provider.snapshot().feed().healthy());
             assertEquals(1,provider.snapshot().feed().players().size());
+            town.set("ChangedTown");
+            provider.tick(System.currentTimeMillis()+61_000,new HunterAlertConfig());
+            await(() -> provider.snapshot().profiles().containsKey("hunter") && provider.snapshot().profiles().get("hunter").town().equals("ChangedTown"));
             provider.reset(); assertFalse(provider.snapshot().feed().healthy()); assertTrue(provider.snapshot().feed().players().isEmpty());
             int before=requests.get(); Thread.sleep(150); assertEquals(before,requests.get());
         } finally { provider.close(); server.stop(0); }

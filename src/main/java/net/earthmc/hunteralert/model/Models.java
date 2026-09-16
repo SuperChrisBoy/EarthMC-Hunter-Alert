@@ -53,15 +53,21 @@ public final class Models {
     public enum Radius { OUTSIDE, MAXIMUM, AWARENESS, WARNING, CRITICAL }
     public enum Trend { UNKNOWN, STATIONARY, APPROACHING, MOVING_AWAY }
     public enum Visibility { UNKNOWN, EXPOSED, HIDDEN }
-    public record Exposure(Visibility state, long since, long exposedSince, long hiddenSince, long lastExposedAt, long lastHiddenAt) {
+    public record Exposure(Visibility state, long since, long exposedSince, long hiddenSince, long lastExposedAt, long lastHiddenAt, double percent) {
+        public Exposure(Visibility state,long since,long exposedSince,long hiddenSince,long lastExposedAt,long lastHiddenAt) { this(state,since,exposedSince,hiddenSince,lastExposedAt,lastHiddenAt,0); }
         public static Exposure unknown() { return new Exposure(Visibility.UNKNOWN,0,0,0,0,0); }
     }
     public record Assessment(MapPlayer player, Kind kind, boolean knownHunter, boolean automaticHunter, boolean watchedPlayer,
                              int outlawCount, double distance, String direction, Radius radius, Trend trend,
                              double distanceChange, long sampleMillis, boolean stale, long lastSeenAt) {}
     public record Alert(long at, String key, String title, String message, int priority) {}
-    public record View(Exposure exposure, List<Assessment> nearby, List<Alert> events, boolean healthy, boolean locationKnown) {
-        public View { nearby = List.copyOf(nearby); events = List.copyOf(events); }
+    public enum MarkerType { LIVE, LAST_SEEN, AFFILIATION }
+    public record ThreatMarker(String key, Identity identity, Position position, MarkerType type, String label, int outlaws, long observedAt, long expiresAt) {
+        public int color() { return type==MarkerType.AFFILIATION ? 0xFFFFCC55 : type==MarkerType.LAST_SEEN ? 0xFFAAAAAA : 0xFFFF5555; }
+    }
+    public record View(Exposure exposure, List<Assessment> nearby, List<Alert> events, boolean healthy, boolean locationKnown, List<ThreatMarker> markers) {
+        public View(Exposure exposure,List<Assessment> nearby,List<Alert> events,boolean healthy,boolean locationKnown) { this(exposure,nearby,events,healthy,locationKnown,List.of()); }
+        public View { nearby = List.copyOf(nearby); events = List.copyOf(events); markers=List.copyOf(markers); }
         public static View empty() { return new View(Exposure.unknown(), List.of(), List.of(), false, false); }
     }
 }
