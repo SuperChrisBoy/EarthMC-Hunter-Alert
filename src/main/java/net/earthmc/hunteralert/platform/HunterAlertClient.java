@@ -7,18 +7,18 @@ import net.earthmc.hunteralert.model.Models.*;
 import net.earthmc.hunteralert.platform.gui.SettingsScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.*;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.client.toast.SystemToast;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.KeyMapping;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.Level;
 import net.townymap.TownyMapMod;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.LoggerFactory;
@@ -43,29 +43,26 @@ public final class HunterAlertClient implements ClientModInitializer {
     @Override public void onInitializeClient() {
         INSTANCE=this;
         store=new LocalStore(FabricLoader.getInstance().getConfigDir().resolve("hunteralert"));
-        var category=KeyBinding.Category.create(Identifier.of("hunteralert","controls"));
-        KeyBinding settings=KeyBindingHelper.registerKeyBinding(new KeyBinding("key.hunteralert.settings",InputUtil.Type.KEYSYM,GLFW.GLFW_KEY_H,category));
+        var category=KeyMapping.Category.register(Identifier.fromNamespaceAndPath("hunteralert","controls"));
+        KeyMapping settings=KeyMappingHelper.registerKeyMapping(new KeyMapping("key.hunteralert.settings",InputConstants.Type.KEYSYM,GLFW.GLFW_KEY_H,category));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if(Boolean.getBoolean("hunteralert.smoke") && FabricLoader.getInstance().isDevelopmentEnvironment()) { SmokeProbe.tick(client,this); return; }
-            while(settings.wasPressed()) if(store.ready()) client.setScreen(new SettingsScreen(client.currentScreen,this));
+            while(settings.consumeClick()) if(store.ready()) client.gui.setScreen(new SettingsScreen(client.gui.screen(),this));
             tick(client);
         });
-        HudElementRegistry.addLast(Identifier.of("hunteralert","hud"),(context,counter) -> hud.render(context));
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("hunteralert","hud"),(context,counter) -> hud.render(context));
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { worker.shutdownNow(); store.close(); });
         LoggerFactory.getLogger("HunterAlert").info("Initialized EMC Map Addon provider; shared requests and caches enabled");
     }
     public static boolean earthHost(String address) {
-        if(address == null) return false;
-        String host=address.toLowerCase(Locale.ROOT).split(":",2)[0];
-        if(host.endsWith(".")) host=host.substring(0,host.length()-1);
-        return host.equals("earthmc.net") || host.endsWith(".earthmc.net");
+        return net.earthmc.hunteralert.data.ServerIdentity.isEarthMc(address);
     }
-    private void tick(MinecraftClient client) {
+    private void tick(Minecraft client) {
         if(!store.ready()) return;
         var config=store.config();
-        boolean connected=config.enabled && client.player != null && client.world != null && client.getCurrentServerEntry() != null
-            && earthHost(client.getCurrentServerEntry().address) && TownyMapMod.isOnEarthMcServer() && TownyMapMod.isActiveOnCurrentServer();
-        Object currentConnection=client.getNetworkHandler();
+        boolean connected=config.enabled && client.player != null && client.level != null && client.getCurrentServer() != null
+            && earthHost(client.getCurrentServer().ip) && TownyMapMod.isOnEarthMcServer() && TownyMapMod.isActiveOnCurrentServer();
+        Object currentConnection=client.getConnection();
         if(connected != active || connection != currentConnection) {
             active=connected; connection=currentConnection; session++;
             EmcMapAddonBridge.reset(); view.set(View.empty()); worker.execute(engine::reset);
@@ -77,7 +74,7 @@ public final class HunterAlertClient implements ClientModInitializer {
         lastTick=now;
         try { provider.tick(now,config); }
         catch(RuntimeException error) { busy.set(false); LoggerFactory.getLogger("HunterAlert").warn("Addon data capture failed",error); return; }
-        Identity self=new Identity(client.player.getUuid(),client.player.getName().getString());
+        Identity self=new Identity(client.player.getUUID(),client.player.getName().getString());
         Position local=localMapPosition(client);
         int generation=session;
         worker.execute(() -> {
@@ -105,19 +102,19 @@ public final class HunterAlertClient implements ClientModInitializer {
         });
         store.save(copy);
     }
-    private Position localMapPosition(MinecraftClient client) {
+    private Position localMapPosition(Minecraft client) {
         // These are local-player coordinates only; never entity distances to other players.
         String world=TownyMapMod.playerWorldResolved();
-        if(world == null || client.world == null || client.player == null) return null;
-        if(client.world.getRegistryKey().equals(World.END)) return null;
-        double scale=client.world.getRegistryKey().equals(World.NETHER) ? 8 : 1;
+        if(world == null || client.level == null || client.player == null) return null;
+        if(client.level.dimension().equals(Level.END)) return null;
+        double scale=client.level.dimension().equals(Level.NETHER) ? 8 : 1;
         return new Position(world,client.player.getX()*scale,client.player.getZ()*scale);
     }
-    private void notify(MinecraftClient client,Alert alert,HunterAlertConfig config) {
+    private void notify(Minecraft client,Alert alert,HunterAlertConfig config) {
         if(config.debug) LoggerFactory.getLogger("HunterAlert").info("{}: {}",alert.key(),alert.message());
         if(config.flash) flashUntil=System.currentTimeMillis()+1800;
-        if(config.chat && client.player != null) client.player.sendMessage(Text.literal("[Hunter Alert] "+alert.title()+": "+alert.message()),false);
-        if(config.toast) SystemToast.add(client.getToastManager(),SystemToast.Type.PERIODIC_NOTIFICATION,Text.literal(alert.title()),Text.literal(alert.message()));
-        if(config.sound) client.getSoundManager().play(PositionedSoundInstance.ui(SoundEvent.of(Identifier.of(config.soundId)),1,config.soundVolume));
+        if(config.chat && client.player != null) client.gui.hud.getChat().addClientSystemMessage(Component.literal("[Hunter Alert] "+alert.title()+": "+alert.message()));
+        if(config.toast) SystemToast.add(client.gui.toastManager(),SystemToast.SystemToastId.PERIODIC_NOTIFICATION,Component.literal(alert.title()),Component.literal(alert.message()));
+        if(config.sound) client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvent.createVariableRangeEvent(Identifier.parse(config.soundId)),1,config.soundVolume));
     }
 }

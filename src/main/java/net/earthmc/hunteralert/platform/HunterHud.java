@@ -1,8 +1,8 @@
 package net.earthmc.hunteralert.platform;
 
 import net.earthmc.hunteralert.model.Models.*;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import java.util.*;
 
 /** All strings, sorting and layout are prepared on ticks; render only draws cached lines. */
@@ -45,19 +45,19 @@ public final class HunterHud {
             }
         }
         lines=List.copyOf(next);
-        var font=MinecraftClient.getInstance().textRenderer;
-        width=lines.stream().mapToInt(l -> font.getWidth(l.text())).max().orElse(160)+16;
+        var font=Minecraft.getInstance().font;
+        width=lines.stream().mapToInt(l -> font.width(l.text())).max().orElse(160)+16;
     }
-    public void render(DrawContext ctx) {
-        var c=mod.store.config(); var client=MinecraftClient.getInstance();
-        if(!mod.active || !c.hud || client.options.hudHidden) return;
-        ctx.getMatrices().pushMatrix(); ctx.getMatrices().scale((float)c.hudScale,(float)c.hudScale);
-        int x=Math.clamp(c.hudX,0,Math.max(0,(int)(ctx.getScaledWindowWidth()/c.hudScale)-width));
-        int y=Math.clamp(c.hudY,0,Math.max(0,(int)(ctx.getScaledWindowHeight()/c.hudScale)-lines.size()*12-12));
+    public void render(GuiGraphicsExtractor ctx) {
+        var c=mod.store.config(); var client=Minecraft.getInstance();
+        if(!mod.active || !c.hud || client.gui.hud.isHidden()) return;
+        ctx.pose().pushMatrix(); ctx.pose().scale((float)c.hudScale,(float)c.hudScale);
+        int x=Math.clamp(c.hudX,0,Math.max(0,(int)(ctx.guiWidth()/c.hudScale)-width));
+        int y=Math.clamp(c.hudY,0,Math.max(0,(int)(ctx.guiHeight()/c.hudScale)-lines.size()*12-12));
         int color=((int)(255*c.opacity)<<24)|(System.currentTimeMillis()<mod.flashUntil ? 0x772222 : 0x111820);
         ctx.fill(x,y,x+width,y+lines.size()*12+12,color);
         int row=y+6;
-        for(Line line:lines) { ctx.drawText(client.textRenderer,line.text(),x+8,row,line.color(),true); row+=12; }
-        ctx.getMatrices().popMatrix();
+        for(Line line:lines) { ctx.text(client.font,line.text(),x+8,row,line.color(),true); row+=12; }
+        ctx.pose().popMatrix();
     }
 }
