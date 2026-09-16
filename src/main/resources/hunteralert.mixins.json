@@ -7,7 +7,9 @@
     "EarthApiMixin",
     "MinimapScopeMixin",
     "MinimapBoundsMixin",
-    "HudTextBoundsMixin"
+    "HudTextBoundsMixin",
+    "AddonMapMixin",
+    "AddonSettingsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

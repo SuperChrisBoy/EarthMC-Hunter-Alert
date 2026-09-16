@@ -4,13 +4,21 @@ Verified on Windows, 2026-09-17 (Asia/Tokyo). These results distinguish executab
 
 | Branch | Minecraft tested | Java | Loom | Loader | Fabric API | Build | Unit tests | Feed bridge | Client/UI smoke |
 |---|---|---|---|---|---|---|---|---|---|
-| mc/1.21.11 | 1.21.11 | 21.0.12.1 | 1.14.10 | 0.18.3 | 0.140.0+1.21.11 | PASS | 28/28 | PASS | PASS |
-| mc/26.1.x | 26.1.2 | 25.0.1 | 1.17.9 | 0.19.2 | 0.150.0+26.1.2 | PASS | 28/28 | PASS | PASS |
-| mc/26.2 | 26.2 | 25.0.1 | 1.17.9 | 0.19.3 | 0.152.2+26.2 | PASS | 28/28 | PASS | PASS |
+| mc/1.21.11 | 1.21.11 | 21.0.12.1 | 1.14.10 | 0.18.3 | 0.140.0+1.21.11 | PASS | 31/31 | PASS | PASS |
+| mc/26.1.x | 26.1.2 | 25.0.1 | 1.17.9 | 0.19.2 | 0.150.0+26.1.2 | PASS | 31/31 | PASS | PASS |
+| mc/26.2 | 26.2 | 25.0.1 | 1.17.9 | 0.19.3 | 0.152.2+26.2 | PASS | 31/31 | PASS | PASS |
 
 Every branch ran `gradlew.bat --no-daemon clean build runClient -Psmoke --warning-mode all` and exited successfully. The 26.1.x branch was built and launched on 26.1.2; earlier 26.1 patch releases were not separately launched. The 1.21.11 branch uses Yarn 1.21.11+build.4; the 26.x branches use Minecraft's unobfuscated names with no mappings dependency.
 
 Optional addon tests use EMC Map Addon 1.4.5; standalone and minimap-only tests run without it. Development runtime pins are Xaero Minimap 26.5.0 / World Map 1.46.0 on 1.21.11 and 26.1.2; Minimap 26.5.1 / World Map 1.46.1 on 26.2. XaeroLib 1.7.3 is explicit because Loom's development runtime does not automatically expose that nested JAR. These dependencies are not bundled into Hunter Alert.
+
+## Version 0.3.1 map, settings and audio fixes
+
+Each branch passed `build runClient -Psmoke -PwithAddon -PwithModMenu --offline` and a separate standalone `runClient -Psmoke --offline`. All 31 tests pass, including full-screen map pan/zoom, world and viewport filtering, distinct exposure/threat sound routing and configuration defaults.
+
+The actual optional mixins load in each client. The addon Settings screen contains exactly one Hunter Alert Settings button; the smoke test clicks it, checks our settings screen opens, and checks Back returns to the addon screen. The registered Mod Menu entrypoint and settings factory also open our screen. Tested Mod Menu versions: 17.0.0 (1.21.11), 18.0.0-beta.1 (26.1.2), 20.0.1 (26.2).
+
+The former temporary Xaero waypoint layer was removed. The new overlay hooks the addon's full-screen map render pass and uses its viewport coordinates. Installing the addon suppresses Hunter Alert's in-world bearing labels even for existing configurations. `verification/earthmc-map-overlay.png` is a synthetic overlay fixture; `verification/addon-settings-entry.png` shows the real addon Settings screen. Both were visually inspected. Authenticated live map panning and listening to sounds in normal gameplay remain unverified; sound selection and pitch are tested programmatically. An initial standalone smoke run exposed eager loading of the addon settings class in the development probe; optional settings probes were isolated into separately loaded classes, and all standalone clients then passed.
 
 ## Version 0.3.0 exposure and threat markers
 
@@ -47,4 +55,4 @@ An early run against upstream's older documented Xaero World Map pin (1.41.2) sh
 
 Authenticated EarthMC multiplayer play was **not** performed. Therefore this is a tested implementation/build delivery, not a claim that every live-server completion criterion has been observed. Verify exposure against the real feed, manual hunter/watch editing while connected, live outlaw/affiliation refresh behavior, notifications in normal gameplay, and extended-session behavior with an authenticated client.
 
-Temporary Xaero threat and affiliation waypoint layers are now implemented behind `ThreatMapLayer`; their display respects Xaero waypoint settings. No reliable friend-list API was found. Standalone town proximity uses API spawn coordinates; the optional addon provider uses labelled claim bounding centres. Outlaw freshness and incomplete API sweeps inherit the addon's cache behavior. Squaremap has no per-player source timestamp through the current bridge, so an unchanged coordinate's observation time is not proof of a fresh measurement.
+Version 0.3.1 replaces temporary Xaero waypoints with a direct full-screen EarthMC map overlay. Live map display and panning still require authenticated acceptance. No reliable friend-list API was found. Standalone town proximity uses API spawn coordinates; the optional addon provider uses labelled claim bounding centres. Outlaw freshness and incomplete API sweeps inherit the addon's cache behavior. Squaremap has no per-player source timestamp through the current bridge, so an unchanged coordinate's observation time is not proof of a fresh measurement.

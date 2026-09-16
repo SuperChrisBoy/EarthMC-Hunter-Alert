@@ -1,0 +1,25 @@
+package net.earthmc.hunteralert.platform;
+
+import net.earthmc.hunteralert.model.Models.*;
+import net.earthmc.hunteralert.platform.gui.*;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.*;
+import net.minecraft.client.util.ScreenshotRecorder;
+import net.minecraft.text.Text;
+import org.slf4j.LoggerFactory;
+import java.util.*;
+
+/** Loaded only by the addon-enabled development smoke run. */
+final class AddonSettingsProbe {
+    static void open(MinecraftClient client,Screen title) { client.setScreen(new net.townymap.gui.TownyMapConfigScreen(title)); }
+    static void verify(MinecraftClient client) {
+            var buttons=client.currentScreen.children().stream().filter(e -> e instanceof net.minecraft.client.gui.widget.ButtonWidget).map(e -> (net.minecraft.client.gui.widget.ButtonWidget)e).filter(b -> b.getMessage().getString().equals("Hunter Alert Settings")).toList();
+            if(buttons.size()!=1) throw new AssertionError("Missing or duplicate addon settings entry");
+            buttons.getFirst().onPress(null);
+            if(!(client.currentScreen instanceof SettingsScreen)) throw new AssertionError("Addon settings button did not open Hunter Alert");
+            client.currentScreen.close();
+            if(!(client.currentScreen instanceof net.townymap.gui.TownyMapConfigScreen)) throw new AssertionError("Settings back navigation failed");
+            LoggerFactory.getLogger("HunterAlertSmoke").info("ADDON_SETTINGS_PASS: entry, click, return");
+    }
+}
