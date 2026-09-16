@@ -20,7 +20,7 @@ public final class SettingsScreen extends Screen {
         new Section("Movement","movement","approachingThreshold","minimumMovement","movementWindowSeconds"),
         new Section("Affiliation Alerts","knownTownChanges","knownNationChanges","automaticTownChanges","automaticNationChanges","affiliationRadius"),
         new Section("Notifications","sound","toast","chat","flash","soundId","soundVolume","cooldownSeconds"),
-        new Section("HUD","hud","compact","hudScale","opacity","hudX","hudY","maxEntries"),
+        new Section("HUD","hud","avoidHudOverlap","compact","hudScale","opacity","hudX","hudY","maxEntries"),
         new Section("Advanced","staleSeconds","expireSeconds","historyLimit","debug")
     );
     private final Screen parent;
