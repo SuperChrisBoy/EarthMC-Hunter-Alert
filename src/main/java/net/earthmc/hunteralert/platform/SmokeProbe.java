@@ -29,10 +29,12 @@ final class SmokeProbe {
                     LoggerFactory.getLogger("HunterAlertSmoke").info("OPTIONAL_HUD_MIXINS_LOADED");
                 } catch(ClassNotFoundException e) { throw new AssertionError(e); }
             }
-            if(net.earthmc.hunteralert.platform.mixin.OptionalMixinPlugin.addon()) AddonThreatMapLayer.smokeCheck();
             feedTest=net.earthmc.hunteralert.platform.mixin.OptionalMixinPlugin.addon() ? FeedIntegrationProbe.start() : java.util.concurrent.CompletableFuture.completedFuture(null);
         }
         ticks++;
+        if(stage==7 && ticks==45 && net.earthmc.hunteralert.platform.mixin.OptionalMixinPlugin.addon()) {
+            AddonSettingsProbe.verify(client);
+        }
         if(ticks==35) {
             String name="hunteralert-smoke-"+stage+".png";
             Screenshot.grab(client.gameDirectory,name,client.gameRenderer.mainRenderTarget(),1,t -> LoggerFactory.getLogger("HunterAlertSmoke").info("SCREENSHOT {}",name));
@@ -69,13 +71,27 @@ final class SmokeProbe {
                 client.gui.setScreen(new Screen(Component.literal("Public map marker fixture")) {
                     @Override public void extractRenderState(GuiGraphicsExtractor ctx,int mx,int my,float delta) {
                         super.extractRenderState(ctx,mx,my,delta);
-                        ctx.text(client.font,"Public map X/Z bearings - height unknown",8,16,0xFFFFFFFF,false);
-                        WorldThreatMarkers.draw(ctx,fixtures,new Position("terra",0,0),0,0,70);
+                        ctx.text(client.font,net.earthmc.hunteralert.platform.mixin.OptionalMixinPlugin.addon() ? "EarthMC map overlay fixture" : "Public map X/Z bearings - height unknown",8,16,0xFFFFFFFF,false);
+                        if(net.earthmc.hunteralert.platform.mixin.OptionalMixinPlugin.addon()) {
+                            net.townymap.TownyMapMod.renderWorldMapLatePass(ctx,0,0,.7,ctx.guiWidth(),ctx.guiHeight());
+                            var mapFixtures=new java.util.ArrayList<>(fixtures);
+                            mapFixtures.add(new ThreatMarker("town",id,new Position("terra",100,-60),MarkerType.AFFILIATION,"MapHunter -> NearbyTown",40,now,now+60_000));
+                            AddonMapOverlay.draw(ctx,mapFixtures,"terra",0,0,.7,ctx.guiWidth(),ctx.guiHeight(),System.currentTimeMillis());
+                        } else WorldThreatMarkers.draw(ctx,fixtures,new Position("terra",0,0),0,0,70);
                     }
                 });
             }
             case 7 -> {
-                if(!feedTest.isDone()) { stage=6; ticks=59; return; }
+                if(net.earthmc.hunteralert.platform.mixin.OptionalMixinPlugin.addon()) AddonSettingsProbe.open(client,title);
+                else client.gui.setScreen(title);
+            }
+            case 8 -> {
+                if(net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("modmenu")) {
+                    ModMenuProbe.verify(client,title);
+                } else client.gui.setScreen(title);
+            }
+            case 9 -> {
+                if(!feedTest.isDone()) { stage=8; ticks=59; return; }
                 feedTest.join();
                 mod.active=false; LoggerFactory.getLogger("HunterAlertSmoke").info("SMOKE_PASS: title, settings, management, history, HUD editor and HUD rendered"); client.stop();
             }

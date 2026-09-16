@@ -23,6 +23,7 @@ public final class HunterAlertConfig implements Cloneable {
     public double hudScale = 1, opacity = .75;
     public int hudX = 12, hudY = 12, maxEntries = 5, historyLimit = 1000;
     public String soundId = "minecraft:block.note_block.bell";
+    public String exposureSoundId="minecraft:block.note_block.pling", threatSoundId="minecraft:block.note_block.bell";
     public float soundVolume = .7f;
     public boolean debug = false;
     public List<Tracked> tracked = new ArrayList<>();
@@ -55,6 +56,8 @@ public final class HunterAlertConfig implements Cloneable {
         hudX = Math.max(0,hudX); hudY = Math.max(0,hudY);
         soundVolume = (float)finite(soundVolume,.7,0,1);
         if (soundId == null || !soundId.matches("[a-z0-9_.-]+:[a-z0-9/._-]+")) soundId = "minecraft:block.note_block.bell";
+        if (exposureSoundId == null || !exposureSoundId.matches("[a-z0-9_.-]+:[a-z0-9/._-]+")) exposureSoundId="minecraft:block.note_block.pling";
+        if (threatSoundId == null || !threatSoundId.matches("[a-z0-9_.-]+:[a-z0-9/._-]+")) threatSoundId="minecraft:block.note_block.bell";
         if (tracked == null) tracked = new ArrayList<>();
         tracked = new ArrayList<>(tracked.stream().filter(t -> t != null && t.identity != null && t.identity.name().matches("[A-Za-z0-9_]{1,16}") && (t.kind == Kind.KNOWN || t.kind == Kind.WATCHED)).limit(2000).toList());
     }

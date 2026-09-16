@@ -4,7 +4,7 @@ Standalone Fabric client mod using EarthMC's public Squaremap player feed and v4
 
 ## Use
 
-Install the matching Hunter Alert JAR, Fabric Loader and Fabric API. No minimap or base addon is required. EMC Map Addon **1.4.5** and Xaero can optionally be installed with their own dependencies. Press **H** (rebindable in Controls) for settings, hunter/watch management, alert history, and HUD positioning. The mod activates only on `earthmc.net` or its subdomains. Settings can be edited off-server.
+Install the matching Hunter Alert JAR, Fabric Loader and Fabric API. No minimap or base addon is required. EMC Map Addon **1.4.5** and Xaero can optionally be installed with their own dependencies. Press **H** (rebindable in Controls) for settings, hunter/watch management, alert history, and HUD positioning. The mod activates only on `earthmc.net` or its subdomains. Settings can be edited off-server. With Mod Menu installed, use Hunter Alert's Configure button. With EarthMC Map Addon installed, open its map Settings, then **General → Hunter Alert Settings**.
 
 The default ranges are 500 / 1500 / 3000 / 5000 blocks. Known hunters override filtering; automatic hunters default to players outlawed by at least ten towns. The HUD puts threats first, then sorts them by outlaw count, classification and distance. Ordinary alerts are off by default. Known hunters override town/nation ignore filters. Classification is a configurable heuristic, not proof of wrongdoing.
 
@@ -18,13 +18,15 @@ Configuration and bounded history are saved to `config/hunteralert/config.json` 
 
 The HUD displays an **exposure meter from 0% to 100%**. It starts at zero for each connection, fills over 60 seconds of observed public visibility, and drains over 120 seconds while absent from a healthy feed. Unknown/stale data pauses the meter. Configure `exposureRiseSeconds` and `exposureFallSeconds` under Exposure. This is an accumulated exposure indicator, not a measured probability of attack or potion detection.
 
-The highest-outlaw nearby threat appears at the top even in compact mode. Red means critical range, orange warning range, yellow a more distant threat, and gray stale data. Public-position markers are projected in-game as horizontal X/Z bearings; target altitude is unknown. A vanished hunter retains a gray last-seen marker until `expireSeconds` (default 120), without extrapolating movement.
+The highest-outlaw nearby threat appears at the top even in compact mode. Red means critical range, orange warning range, yellow a more distant threat, and gray stale data. In standalone mode, public-position markers are projected in-game as horizontal X/Z bearings; target altitude is unknown. Installing EarthMC Map Addon suppresses these in-world labels and uses its full-screen map instead. A vanished hunter retains a gray last-seen marker until `expireSeconds` (default 120), without extrapolating movement.
 
 When a monitored hunter changes town or nation, proximity is checked against both your current position and your own town's anchor in the same world. A matching change triggers an affiliation warning and a gold **POSSIBLE RISK** clue. Nation changes use the nearest member-town anchor. A hidden hunter can therefore generate an API-based warning even without a public position. Missing profiles never mean a player left a town. An initial profile establishes a baseline; it is not treated as a new join.
 
-With EMC Map Addon 1.4.5 installed, live positions, last-seen positions and affiliation-town anchors become temporary Xaero waypoints. Red `PUBLIC MAP`, gray `LAST SEEN`, and gold `CLUE` labels distinguish their evidence. These appear on the world map/minimap and through Xaero's waypoint renderer, subject to its waypoint visibility settings. Archive mode suppresses live waypoints. Affiliation markers expire after `affiliationMarkerSeconds` (default 300); changing server or disabling the mod removes owned markers. Your own waypoints are preserved.
+With EMC Map Addon 1.4.5 installed, live positions, last-seen positions and affiliation-town anchors are drawn directly on the full-screen EarthMC map. Markers follow its current world, pan and zoom. Red live labels, gray `LAST SEEN`, and gold `CLUE` labels distinguish their evidence. No Xaero waypoints are created. Archive and screenshot modes suppress this overlay. Affiliation markers expire after `affiliationMarkerSeconds` (default 300).
 
-`mapHighlights` controls the optional waypoint layer. `worldMarkers` controls Hunter Alert's projected in-game bearing labels; Xaero's own waypoint visibility is controlled in Xaero settings. Both are available in HUD settings. API requests are batched and rate-limited, so warnings can lag changes; addon caches may add delay. Neither an affiliation clue nor an old coordinate establishes an invisible player's current location.
+`mapHighlights` controls the optional full-screen map overlay. `worldMarkers` controls projected in-game bearing labels in standalone mode only. Both are available in HUD settings. API requests are batched and rate-limited, so warnings can lag changes; addon caches may add delay. Neither an affiliation clue nor an old coordinate establishes an invisible player's current location.
+
+Exposure notifications use a higher-pitched note-block **pling**; hunter proximity, approach, disappearance and affiliation warnings use a lower-pitched **bell**. Change `exposureSoundId` and `threatSoundId` independently under Notifications. Other alerts retain `soundId`; all sounds respect the existing sound toggle and volume.
 
 ## HUD placement
 
@@ -37,7 +39,7 @@ The HUD editor stores your preferred position. Disable overlap avoidance for ful
 * `model`, `detection`, `alert`, `config`, and `data`: Minecraft-independent models, threat state machine, movement/exposure, persistence and provider contracts.
 * `platform`: all Minecraft/Fabric UI, sound, toast, rendering and version-specific code; direct public addon adapters.
 * `platform/mixin`: optional, gated addon feed/client hooks and Xaero bounds/text observers. No optional mod classes are required during standalone startup.
-* `integration/map/ThreatMapLayer`: optional temporary waypoint boundary. `AddonThreatMapLayer` owns only the Xaero waypoints it creates, refreshing and removing them without touching user waypoints.
+* `platform/AddonMapOverlay`: optional full-screen EarthMC map overlay using its viewport coordinates; `MapProjection` provides the shared pan/zoom transform.
 
 In standalone mode, positions refresh every three seconds on a dedicated HTTP worker. Town/outlaw intelligence refreshes every ten minutes; profiles refresh every minute on a separate worker, with batches of at most 100 names and at most one API request per second. HTTP failures preserve the previous data, failed feed observations become unknown, and generation checks reject late responses after disconnect. In addon mode, map requests share upstream's polling gate. Outlaw counts reuse its ten-minute reverse index. Tracked affiliation refreshes batch names through the same API client every minute, including players absent from the map. No full-player-directory sweep is started. Missing API profiles never imply leaving a town. Immutable snapshots cross from workers to the client. Movement uses a short bounded history and evaluates hunter displacement against one fixed local reference, so your own travel does not falsely make a stationary hunter approach.
 
@@ -52,10 +54,10 @@ Use Java 21 for 1.21.11 and Java 25 for 26.x:
 .\gradlew.bat runClient
 .\gradlew.bat runClient -Psmoke
 .\gradlew.bat runClient -Psmoke -PwithMinimap
-.\gradlew.bat runClient -Psmoke -PwithAddon
+.\gradlew.bat runClient -Psmoke -PwithAddon -PwithModMenu
 ```
 
-The development-only smoke option uses a separate `run/smoke` directory, exercises optional addon parser/health hooks with loopback HTTP fixtures when the addon is enabled, renders title/settings/management/history/HUD screens, captures screenshots, and exits. Its HUD uses a synthetic fixture; this is not evidence of a live EarthMC connection. Version 0.3 passed 28 tests per branch and client smoke checks in standalone and addon configurations. Version 0.2 additionally tested minimap-only configurations. See [verification results](docs/VERIFICATION.md).
+The development-only smoke option uses a separate `run/smoke` directory, exercises optional addon parser/health hooks with loopback HTTP fixtures when the addon is enabled, renders title/settings/management/history/HUD screens, captures screenshots, and exits. Its HUD uses a synthetic fixture; this is not evidence of a live EarthMC connection. Version 0.3.1 passed 31 tests per branch and client smoke checks in standalone and addon-plus-Mod-Menu configurations, including the addon settings button click/return and registered Mod Menu settings factory. Version 0.2 additionally tested minimap-only configurations. See [verification results](docs/VERIFICATION.md).
 
 Unit tests cover distances, radius transitions, threshold boundaries, exposure/outages, movement/jitter/stale data, local-motion rejection, UUID fallback, cooldowns, malformed feeds, session isolation, affiliation semantics and safe persistence.
 

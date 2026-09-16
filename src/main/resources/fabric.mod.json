@@ -9,6 +9,9 @@
   "entrypoints": {
     "client": [
       "net.earthmc.hunteralert.platform.HunterAlertClient"
+    ],
+    "modmenu": [
+      "net.earthmc.hunteralert.platform.ModMenuIntegration"
     ]
   },
   "mixins": [
@@ -22,6 +25,7 @@
   },
   "suggests": {
     "townymapaddon": "1.4.5",
-    "xaerominimap": "*"
+    "xaerominimap": "*",
+    "modmenu": "*"
   }
 }

@@ -4,6 +4,7 @@ group = 'net.earthmc.hunteralert'
 base { archivesName = "earthmc-hunter-alert-${project.minecraft_version}" }
 repositories {
     mavenCentral()
+    maven { url = 'https://maven.terraformersmc.com/releases/' }
     maven { url = 'https://api.modrinth.com/maven' }
     maven { url = 'https://chocolateminecraft.com/maven/' }
 }
@@ -13,11 +14,11 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     compileOnly "maven.modrinth:emcmap-addon:${project.addon_version}"
     if (project.hasProperty('withAddon')) runtimeOnly "maven.modrinth:emcmap-addon:${project.addon_version}"
-    compileOnly 'maven.modrinth:xaeros-minimap:VlMbRW2O'
     if (project.hasProperty('withAddon') || project.hasProperty('withMinimap')) runtimeOnly 'maven.modrinth:xaeros-minimap:VlMbRW2O'
     if (project.hasProperty('withAddon')) runtimeOnly 'maven.modrinth:xaeros-world-map:q0Wvp46X'
-    compileOnly 'xaero.lib:xaerolib-fabric-26.2:1.7.3'
     if (project.hasProperty('withAddon') || project.hasProperty('withMinimap')) runtimeOnly 'xaero.lib:xaerolib-fabric-26.2:1.7.3'
+    compileOnly "com.terraformersmc:modmenu:20.0.1"
+    if (project.hasProperty('withModMenu')) runtimeOnly "com.terraformersmc:modmenu:20.0.1"
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
