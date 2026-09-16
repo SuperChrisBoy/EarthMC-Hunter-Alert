@@ -22,7 +22,14 @@ final class SmokeProbe {
             if(!(client.screen instanceof TitleScreen)) { client.setScreen(new TitleScreen()); return; }
             title=client.screen; started=true;
             LoggerFactory.getLogger("HunterAlertSmoke").info("TITLE_READY");
-            feedTest=FeedIntegrationProbe.start();
+            if(net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("xaerominimap")) {
+                try {
+                    Class.forName("xaero.hud.minimap.module.MinimapRenderer");
+                    Class.forName("xaero.common.minimap.render.MinimapRenderer");
+                    LoggerFactory.getLogger("HunterAlertSmoke").info("OPTIONAL_HUD_MIXINS_LOADED");
+                } catch(ClassNotFoundException e) { throw new AssertionError(e); }
+            }
+            feedTest=net.earthmc.hunteralert.platform.mixin.OptionalMixinPlugin.addon() ? FeedIntegrationProbe.start() : java.util.concurrent.CompletableFuture.completedFuture(null);
         }
         ticks++;
         if(ticks==35) {
@@ -43,7 +50,15 @@ final class SmokeProbe {
                 mod.view.set(new View(new Exposure(Visibility.EXPOSED,now-134_000,now-134_000,0,now-134_000,0),List.of(new Assessment(p,Kind.KNOWN,true,true,false,23,824,"NW",Radius.WARNING,Trend.APPROACHING,-82,10_000,false,now)),List.of(),true,true));
                 HunterHud hud=new HunterHud(mod); mod.active=true; hud.refresh(now);
                 client.setScreen(new Screen(Component.literal("Synthetic HUD smoke fixture")) {
-                    @Override public void extractRenderState(GuiGraphicsExtractor ctx,int mx,int my,float delta) { super.extractRenderState(ctx,mx,my,delta); hud.render(ctx); }
+                    @Override public void extractRenderState(GuiGraphicsExtractor ctx,int mx,int my,float delta) { super.extractRenderState(ctx,mx,my,delta);
+                        var obstacle=new net.earthmc.hunteralert.api.HudObstacles.Rect(4,4,160,180);
+                        net.earthmc.hunteralert.api.HudObstacles.publish("smoke-map",obstacle);
+                        ctx.fill(4,4,164,184,0xFF284A38);
+                        net.earthmc.hunteralert.api.HudObstacles.begin();
+                        ctx.text(client.font,"Minimap + town info fixture",10,160,0xFFFFFFFF,false);
+                        net.earthmc.hunteralert.api.HudObstacles.end();
+                        if(net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("xaerominimap") && net.earthmc.hunteralert.api.HudObstacles.snapshot().size()<2) throw new AssertionError("HUD text capture hook did not run");
+                        hud.render(ctx); }
                 });
             }
             case 6 -> {

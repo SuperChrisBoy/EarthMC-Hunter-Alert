@@ -69,6 +69,7 @@ public final class EmcMapAddonDataProvider implements EarthMcDataProvider {
         source.values().forEach(p -> result.put(Models.key(p.name()),new Profile(Identity.of(p.uuid(),p.name()),p.townName(),p.nationName(),at)));
         return Map.copyOf(result);
     }
+    @Override public String mapWorld(String dimension) { return TownyMapMod.playerWorldResolved(); }
     @Override public Snapshot snapshot() {
         Raw current=raw;
         if(current.towns != lastTowns) {

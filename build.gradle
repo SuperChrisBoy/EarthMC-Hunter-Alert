@@ -11,10 +11,11 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    implementation "maven.modrinth:emcmap-addon:${project.addon_version}"
-    runtimeOnly 'maven.modrinth:xaeros-minimap:kWf58HtH'
-    runtimeOnly 'maven.modrinth:xaeros-world-map:IYPINJuw'
-    runtimeOnly 'xaero.lib:xaerolib-fabric-26.1.2:1.7.3'
+    compileOnly "maven.modrinth:emcmap-addon:${project.addon_version}"
+    if (project.hasProperty('withAddon')) runtimeOnly "maven.modrinth:emcmap-addon:${project.addon_version}"
+    if (project.hasProperty('withAddon') || project.hasProperty('withMinimap')) runtimeOnly 'maven.modrinth:xaeros-minimap:kWf58HtH'
+    if (project.hasProperty('withAddon')) runtimeOnly 'maven.modrinth:xaeros-world-map:IYPINJuw'
+    if (project.hasProperty('withAddon') || project.hasProperty('withMinimap')) runtimeOnly 'xaero.lib:xaerolib-fabric-26.1.2:1.7.3'
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

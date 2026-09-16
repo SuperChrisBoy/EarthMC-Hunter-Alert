@@ -2,6 +2,15 @@
   "required": true,
   "package": "net.earthmc.hunteralert.platform.mixin",
   "compatibilityLevel": "JAVA_25",
-  "client": ["PlayerFeedMixin", "EarthApiMixin"],
-  "injectors": {"defaultRequire": 1}
+  "client": [
+    "PlayerFeedMixin",
+    "EarthApiMixin",
+    "MinimapScopeMixin",
+    "MinimapBoundsMixin",
+    "HudTextBoundsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "plugin": "net.earthmc.hunteralert.platform.mixin.OptionalMixinPlugin"
 }

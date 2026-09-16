@@ -4,6 +4,7 @@ import net.earthmc.hunteralert.model.Models.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import java.util.*;
+import net.earthmc.hunteralert.api.HudObstacles;
 
 /** All strings, sorting and layout are prepared on ticks; render only draws cached lines. */
 public final class HunterHud {
@@ -51,9 +52,19 @@ public final class HunterHud {
     public void render(GuiGraphicsExtractor ctx) {
         var c=mod.store.config(); var client=Minecraft.getInstance();
         if(!mod.active || !c.hud || client.options.hideGui) return;
-        ctx.pose().pushMatrix(); ctx.pose().scale((float)c.hudScale,(float)c.hudScale);
-        int x=Math.clamp(c.hudX,0,Math.max(0,(int)(ctx.guiWidth()/c.hudScale)-width));
-        int y=Math.clamp(c.hudY,0,Math.max(0,(int)(ctx.guiHeight()/c.hudScale)-lines.size()*12-12));
+        int screenW=ctx.guiWidth(),screenH=ctx.guiHeight();
+        double scale=c.hudScale;
+        List<HudObstacles.Rect> occupied=new ArrayList<>(c.avoidHudOverlap ? HudObstacles.snapshot() : List.of());
+        if(c.avoidHudOverlap) occupied.add(new HudObstacles.Rect(Math.max(0,screenW/2-100),Math.max(0,screenH-65),200,65));
+        HudObstacles.Rect placement=null;
+        while(scale>=.49) {
+            placement=HudObstacles.place(screenW,screenH,(int)Math.ceil(width*scale),(int)Math.ceil((lines.size()*12+12)*scale),(int)(c.hudX*c.hudScale),(int)(c.hudY*c.hudScale),occupied);
+            if(placement!=null) break;
+            scale-=.05;
+        }
+        if(placement==null) return;
+        ctx.pose().pushMatrix(); ctx.pose().translate(placement.x(),placement.y()); ctx.pose().scale((float)scale,(float)scale);
+        int x=0,y=0;
         int color=((int)(255*c.opacity)<<24)|(System.currentTimeMillis()<mod.flashUntil ? 0x772222 : 0x111820);
         ctx.fill(x,y,x+width,y+lines.size()*12+12,color);
         int row=y+6;

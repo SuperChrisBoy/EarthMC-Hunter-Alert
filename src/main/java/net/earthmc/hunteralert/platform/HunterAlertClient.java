@@ -19,7 +19,8 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
-import net.townymap.TownyMapMod;
+import net.earthmc.hunteralert.data.*;
+import net.earthmc.hunteralert.platform.mixin.OptionalMixinPlugin;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.LoggerFactory;
 import java.util.*;
@@ -33,7 +34,7 @@ public final class HunterAlertClient implements ClientModInitializer {
     public volatile boolean active;
     public long flashUntil;
     private final ThreatEngine engine=new ThreatEngine();
-    private final EmcMapAddonDataProvider provider=new EmcMapAddonDataProvider();
+    private final EarthMcDataProvider provider=OptionalMixinPlugin.addon() ? new EmcMapAddonDataProvider() : new DirectEarthMcDataProvider();
     private final ExecutorService worker=Executors.newSingleThreadExecutor(r -> { Thread t=new Thread(r,"HunterAlert-detection"); t.setDaemon(true); return t; });
     private final AtomicBoolean busy=new AtomicBoolean();
     private long lastTick;
@@ -51,8 +52,8 @@ public final class HunterAlertClient implements ClientModInitializer {
             tick(client);
         });
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("hunteralert","hud"),(context,counter) -> hud.render(context));
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { worker.shutdownNow(); store.close(); });
-        LoggerFactory.getLogger("HunterAlert").info("Initialized EMC Map Addon provider; shared requests and caches enabled");
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { worker.shutdownNow(); provider.close(); store.close(); });
+        LoggerFactory.getLogger("HunterAlert").info("Initialized EarthMC data provider");
     }
     public static boolean earthHost(String address) {
         return net.earthmc.hunteralert.data.ServerIdentity.isEarthMc(address);
@@ -61,20 +62,21 @@ public final class HunterAlertClient implements ClientModInitializer {
         if(!store.ready()) return;
         var config=store.config();
         boolean connected=config.enabled && client.player != null && client.level != null && client.getCurrentServer() != null
-            && earthHost(client.getCurrentServer().ip) && TownyMapMod.isOnEarthMcServer() && TownyMapMod.isActiveOnCurrentServer();
+            && earthHost(client.getCurrentServer().ip);
         Object currentConnection=client.getConnection();
         if(connected != active || connection != currentConnection) {
             active=connected; connection=currentConnection; session++;
-            EmcMapAddonBridge.reset(); view.set(View.empty()); worker.execute(engine::reset);
+            provider.reset(); EmcMapAddonBridge.reset(); view.set(View.empty()); worker.execute(engine::reset);
         }
         if(!active) return;
         long now=System.currentTimeMillis();
         hud.refresh(now);
         if(now-lastTick < 250 || !busy.compareAndSet(false,true)) return;
         lastTick=now;
-        try { provider.tick(now,config); }
-        catch(RuntimeException error) { busy.set(false); LoggerFactory.getLogger("HunterAlert").warn("Addon data capture failed",error); return; }
         Identity self=new Identity(client.player.getUUID(),client.player.getName().getString());
+        provider.localIdentity(self);
+        try { provider.tick(now,config); }
+        catch(RuntimeException error) { busy.set(false); LoggerFactory.getLogger("HunterAlert").warn("EarthMC data capture failed",error); return; }
         Position local=localMapPosition(client);
         int generation=session;
         worker.execute(() -> {
@@ -104,8 +106,9 @@ public final class HunterAlertClient implements ClientModInitializer {
     }
     private Position localMapPosition(Minecraft client) {
         // These are local-player coordinates only; never entity distances to other players.
-        String world=TownyMapMod.playerWorldResolved();
-        if(world == null || client.level == null || client.player == null) return null;
+        if(client.level == null || client.player == null) return null;
+        String world=provider.mapWorld(client.level.dimension().identifier().toString());
+        if(world == null || world.isBlank() || client.level == null || client.player == null) return null;
         if(client.level.dimension().equals(Level.END)) return null;
         double scale=client.level.dimension().equals(Level.NETHER) ? 8 : 1;
         return new Position(world,client.player.getX()*scale,client.player.getZ()*scale);

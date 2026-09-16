@@ -1,10 +1,16 @@
-﻿[00:19:56] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 26.1.2 with Fabric Loader 0.19.2
-[00:20:14] [Render thread/INFO] (HunterAlertSmoke) TITLE_READY
-[00:20:14] [ForkJoinPool.commonPool-worker-1/INFO] (HunterAlertSmoke) FEED_BRIDGE_PASS: valid, world, 304, 503, malformed, empty; shared API hook present
-[00:20:15] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=0 screen=TitleScreen
-[00:20:18] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=1 screen=SettingsScreen
-[00:20:21] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=2 screen=HunterManagerScreen
-[00:20:24] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=3 screen=HistoryScreen
-[00:20:27] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=4 screen=HudEditorScreen
-[00:20:30] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=5 screen=
-[00:20:32] [Render thread/INFO] (HunterAlertSmoke) SMOKE_PASS: title, settings, management, history, HUD editor and HUD rendered
+﻿[00:37:38] [Render thread/INFO] (HunterAlertSmoke) TITLE_READY
+[00:37:38] [Render thread/INFO] (HunterAlertSmoke) OPTIONAL_HUD_MIXINS_LOADED
+[00:37:38] [ForkJoinPool.commonPool-worker-1/INFO] (HunterAlertSmoke) FEED_BRIDGE_PASS: valid, world, 304, 503, malformed, empty; shared API hook present
+[00:37:40] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=0 screen=TitleScreen
+[00:37:40] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-0.png
+[00:37:43] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=1 screen=SettingsScreen
+[00:37:43] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-1.png
+[00:37:46] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=2 screen=HunterManagerScreen
+[00:37:46] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-2.png
+[00:37:49] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=3 screen=HistoryScreen
+[00:37:49] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-3.png
+[00:37:52] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=4 screen=HudEditorScreen
+[00:37:52] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-4.png
+[00:37:55] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=5 screen=
+[00:37:55] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-5.png
+[00:37:56] [Render thread/INFO] (HunterAlertSmoke) SMOKE_PASS: title, settings, management, history, HUD editor and HUD rendered
