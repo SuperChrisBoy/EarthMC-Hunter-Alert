@@ -16,7 +16,7 @@ public final class HunterAlertConfig implements Cloneable {
     public int movementWindowSeconds = 10, staleSeconds = 15, expireSeconds = 120, cooldownSeconds = 30;
     public boolean knownTownChanges = true, knownNationChanges = true, automaticTownChanges = true, automaticNationChanges = true;
     public double affiliationRadius = 5000;
-    public boolean hud = true, compact = false;
+    public boolean hud = true, compact = false, avoidHudOverlap = true;
     public double hudScale = 1, opacity = .75;
     public int hudX = 12, hudY = 12, maxEntries = 5, historyLimit = 1000;
     public String soundId = "minecraft:block.note_block.bell";

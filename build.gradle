@@ -12,10 +12,11 @@ dependencies {
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    modImplementation "maven.modrinth:emcmap-addon:${project.addon_version}"
-    modRuntimeOnly 'maven.modrinth:xaeros-minimap:VNYP3B0c'
-    modRuntimeOnly 'maven.modrinth:xaeros-world-map:Jfe3ZJIB'
-    modRuntimeOnly 'xaero.lib:xaerolib-fabric-1.21.11:1.7.3'
+    modCompileOnly "maven.modrinth:emcmap-addon:${project.addon_version}"
+    if (project.hasProperty('withAddon')) modRuntimeOnly "maven.modrinth:emcmap-addon:${project.addon_version}"
+    if (project.hasProperty('withAddon') || project.hasProperty('withMinimap')) modRuntimeOnly 'maven.modrinth:xaeros-minimap:VNYP3B0c'
+    if (project.hasProperty('withAddon')) modRuntimeOnly 'maven.modrinth:xaeros-world-map:Jfe3ZJIB'
+    if (project.hasProperty('withAddon') || project.hasProperty('withMinimap')) modRuntimeOnly 'xaero.lib:xaerolib-fabric-1.21.11:1.7.3'
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

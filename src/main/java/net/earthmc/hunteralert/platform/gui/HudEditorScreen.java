@@ -10,7 +10,7 @@ import net.minecraft.text.Text;
 public final class HudEditorScreen extends Screen {
     private final Screen parent;
     private final HunterAlertClient mod;
-    public HudEditorScreen(Screen parent,HunterAlertClient mod) { super(Text.literal("Click or drag to position the HUD")); this.parent=parent; this.mod=mod; }
+    public HudEditorScreen(Screen parent,HunterAlertClient mod) { super(Text.literal("Click or drag to choose the preferred HUD position")); this.parent=parent; this.mod=mod; }
     @Override protected void init() { addDrawableChild(ButtonWidget.builder(Text.literal("Done"),b -> close()).dimensions(width/2-50,height-30,100,20).build()); }
     private void move(double x,double y) { var c=mod.store.editableCopy(); c.hudX=(int)(x/c.hudScale); c.hudY=(int)(y/c.hudScale); mod.store.save(c); }
     @Override public boolean mouseClicked(Click click,boolean doubled) {
