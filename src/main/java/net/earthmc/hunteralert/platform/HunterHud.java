@@ -4,6 +4,7 @@ import net.earthmc.hunteralert.model.Models.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import java.util.*;
+import net.earthmc.hunteralert.detection.ThreatPresentation;
 import net.earthmc.hunteralert.api.HudObstacles;
 
 /** All strings, sorting and layout are prepared on ticks; render only draws cached lines. */
@@ -20,10 +21,15 @@ public final class HunterHud {
         var c=mod.store.config(); var view=mod.view.get(); var e=view.exposure();
         List<Line> next=new ArrayList<>();
         String status=switch(e.state()) { case EXPOSED -> "MAP EXPOSED"; case HIDDEN -> "MAP HIDDEN"; case UNKNOWN -> "MAP STATUS UNKNOWN"; };
+        status="EXPOSURE "+Math.round(e.percent())+"% | "+status+(e.state()==Visibility.UNKNOWN ? " (paused)" : "");
         long seconds=Math.max(0,(now-e.since())/1000);
         if(c.exposureTimer && e.state() != Visibility.UNKNOWN) status+=" "+String.format(Locale.ROOT,"%02d:%02d",seconds/60,seconds%60);
         long threats=view.nearby().stream().filter(a -> a.kind().priority >= 2).count();
         int exposureColor=e.state()==Visibility.EXPOSED ? 0xFFFFAA55 : e.state()==Visibility.HIDDEN ? 0xFF77DD99 : 0xFFBBBBBB;
+        var leader=view.nearby().stream().filter(a -> a.kind().priority>=2).sorted(ThreatPresentation.ORDER).findFirst();
+        leader.ifPresent(a -> next.add(new Line((a.stale()?"LAST SEEN":a.radius().name())+": "+a.player().identity().name()+" | "+a.outlawCount()+" outlaw towns",ThreatPresentation.color(a))));
+        for(var marker:view.markers().stream().filter(m -> m.type()==MarkerType.AFFILIATION && now<m.expiresAt()).limit(2).toList()) next.add(new Line("POSSIBLE RISK: "+marker.label(),marker.color()));
+        if(leader.isEmpty() && view.markers().stream().anyMatch(m -> m.type()==MarkerType.LAST_SEEN && now<m.expiresAt())) next.add(new Line("Hunter left map; current location unknown",0xFFFFCC55));
         if(c.compact) next.add(new Line((c.showExposure ? status+" | " : "")+(!view.healthy() || !view.locationKnown() ? "UNKNOWN" : threats==0 ? "NO MAP THREATS" : threats+" THREATS"),exposureColor));
         else {
             next.add(new Line("HUNTER ALERT",0xFFFFFFFF));
@@ -34,7 +40,7 @@ public final class HunterHud {
                 for(Assessment a:view.nearby().stream().limit(c.maxEntries).toList()) {
                     String mark=switch(a.kind()) { case KNOWN -> "[H] "; case AUTOMATIC -> "[A] "; case WATCHED -> "[W] "; default -> ""; };
                     String distance=a.distance() >= 1000 ? String.format(Locale.ROOT,"%.2f km",a.distance()/1000) : Math.round(a.distance())+" blocks";
-                    next.add(new Line(mark+a.player().identity().name()+"  "+distance+" "+a.direction()+(a.stale()?" (stale)":""),a.kind().priority>=2 ? 0xFFFF8877 : 0xFFDDDDDD));
+                    next.add(new Line(mark+a.player().identity().name()+"  "+distance+" "+a.direction()+(a.stale()?" (stale)":""),ThreatPresentation.color(a)));
                     if(a.kind().priority>=2) {
                         next.add(new Line("  "+a.outlawCount()+" outlaw towns | "+a.trend().name().replace('_',' '),0xFFAAAAAA));
                         if(a.sampleMillis()>0 && !a.stale()) next.add(new Line("  "+Math.round(a.distanceChange())+" blocks / "+a.sampleMillis()/1000+" sec",0xFFAAAAAA));

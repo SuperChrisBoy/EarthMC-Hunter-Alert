@@ -33,6 +33,7 @@ public final class HunterAlertClient implements ClientModInitializer {
     public final AtomicReference<View> view = new AtomicReference<>(View.empty());
     public volatile boolean active;
     public long flashUntil;
+    private final net.earthmc.hunteralert.integration.map.ThreatMapLayer mapLayer=OptionalMixinPlugin.addon() ? new AddonThreatMapLayer() : null;
     private final ThreatEngine engine=new ThreatEngine();
     private final EarthMcDataProvider provider=OptionalMixinPlugin.addon() ? new EmcMapAddonDataProvider() : new DirectEarthMcDataProvider();
     private final ExecutorService worker=Executors.newSingleThreadExecutor(r -> { Thread t=new Thread(r,"HunterAlert-detection"); t.setDaemon(true); return t; });
@@ -51,8 +52,8 @@ public final class HunterAlertClient implements ClientModInitializer {
             while(settings.wasPressed()) if(store.ready()) client.setScreen(new SettingsScreen(client.currentScreen,this));
             tick(client);
         });
-        HudElementRegistry.addLast(Identifier.of("hunteralert","hud"),(context,counter) -> hud.render(context));
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { worker.shutdownNow(); provider.close(); store.close(); });
+        HudElementRegistry.addLast(Identifier.of("hunteralert","hud"),(context,counter) -> { WorldThreatMarkers.render(context,this); hud.render(context); });
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { if(mapLayer!=null) mapLayer.clear(); worker.shutdownNow(); provider.close(); store.close(); });
         LoggerFactory.getLogger("HunterAlert").info("Initialized EarthMC data provider");
     }
     public static boolean earthHost(String address) {
@@ -66,6 +67,7 @@ public final class HunterAlertClient implements ClientModInitializer {
         Object currentConnection=client.getNetworkHandler();
         if(connected != active || connection != currentConnection) {
             active=connected; connection=currentConnection; session++;
+            if(mapLayer!=null) mapLayer.clear();
             provider.reset(); EmcMapAddonBridge.reset(); view.set(View.empty()); worker.execute(engine::reset);
         }
         if(!active) return;
@@ -85,6 +87,7 @@ public final class HunterAlertClient implements ClientModInitializer {
                 client.execute(() -> {
                     if(generation != session || !active) return;
                     view.set(next); store.append(next.events());
+                    if(mapLayer!=null) { if(config.mapHighlights) mapLayer.publish(next.markers(),local,config.maximum); else mapLayer.clear(); }
                     upgradeIdentities(next);
                     for(Alert alert:next.events()) notify(client,alert,config);
                 });
@@ -104,7 +107,7 @@ public final class HunterAlertClient implements ClientModInitializer {
         });
         store.save(copy);
     }
-    private Position localMapPosition(MinecraftClient client) {
+    public Position localMapPosition(MinecraftClient client) {
         // These are local-player coordinates only; never entity distances to other players.
         if(client.world == null || client.player == null) return null;
         String world=provider.mapWorld(client.world.getRegistryKey().getValue().toString());

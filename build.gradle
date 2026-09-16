@@ -14,8 +14,10 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     modCompileOnly "maven.modrinth:emcmap-addon:${project.addon_version}"
     if (project.hasProperty('withAddon')) modRuntimeOnly "maven.modrinth:emcmap-addon:${project.addon_version}"
+    modCompileOnly 'maven.modrinth:xaeros-minimap:VNYP3B0c'
     if (project.hasProperty('withAddon') || project.hasProperty('withMinimap')) modRuntimeOnly 'maven.modrinth:xaeros-minimap:VNYP3B0c'
     if (project.hasProperty('withAddon')) modRuntimeOnly 'maven.modrinth:xaeros-world-map:Jfe3ZJIB'
+    modCompileOnly 'xaero.lib:xaerolib-fabric-1.21.11:1.7.3'
     if (project.hasProperty('withAddon') || project.hasProperty('withMinimap')) modRuntimeOnly 'xaero.lib:xaerolib-fabric-1.21.11:1.7.3'
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'

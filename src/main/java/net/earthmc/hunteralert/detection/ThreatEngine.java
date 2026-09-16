@@ -13,6 +13,7 @@ public final class ThreatEngine {
     private final AlertManager alerts = new AlertManager();
     private final Map<String, Assessment> previous = new HashMap<>();
     private final Map<String, Profile> affiliations = new HashMap<>();
+    private final Map<String,ThreatMarker> markers=new HashMap<>();
     private String localWorld = "";
     private long lastFeed;
     private boolean suspended;
@@ -23,28 +24,29 @@ public final class ThreatEngine {
         Feed feed = snapshot.feed();
         boolean healthy = config.enabled && feed.healthy() && feed.receivedAt() > 0 && now >= feed.receivedAt() && now-feed.receivedAt() <= config.staleSeconds*1000L;
         if (!healthy) {
-            exposure.update(Visibility.UNKNOWN,now);
+            exposure.update(Visibility.UNKNOWN,now,config.exposureRiseSeconds,config.exposureFallSeconds);
             movement.clear();
             // Keep last positions for display, but never infer departures from a failed feed.
             var stale = previous.values().stream().filter(a -> a.radius() != Radius.OUTSIDE && now-a.lastSeenAt() <= config.expireSeconds*1000L)
                 .map(a -> new Assessment(a.player(),a.kind(),a.knownHunter(),a.automaticHunter(),a.watchedPlayer(),a.outlawCount(),a.distance(),a.direction(),a.radius(),Trend.UNKNOWN,0,0,true,a.lastSeenAt())).toList();
             previous.entrySet().removeIf(entry -> now-entry.getValue().lastSeenAt()>config.expireSeconds*1000L);
             suspended=true; lastFeed = 0;
-            return new View(exposure.state(),stale,events,false,local != null);
+            if(config.enabled && local!=null) updateAffiliations(snapshot,self,local,now,config,events);
+            return new View(exposure.state(),stale.stream().sorted(ThreatPresentation.ORDER).toList(),events,false,local != null,markerView(Set.of(),local,now,config));
         }
         if(suspended) { previous.clear(); suspended=false; }
         Optional<MapPlayer> me = feed.players().stream().filter(p -> self.matches(p.identity())).findFirst();
         boolean selfStale = me.isPresent() && now-me.get().updatedAt() > config.staleSeconds*1000L;
         Visibility old = exposure.state().state();
         Visibility state = selfStale ? Visibility.UNKNOWN : me.isPresent() ? Visibility.EXPOSED : Visibility.HIDDEN;
-        exposure.update(state,now);
+        exposure.update(state,now,config.exposureRiseSeconds,config.exposureFallSeconds);
         if (old == Visibility.HIDDEN && state == Visibility.EXPOSED && config.exposedAlert) emit(events,now,"self:map-exposed","MAP EXPOSED","Your position is now in the public map feed.",3,config);
         if (old == Visibility.EXPOSED && state == Visibility.HIDDEN && config.hiddenAlert) emit(events,now,"self:map-hidden","MAP HIDDEN","Your name is absent from the healthy public map feed.",1,config);
         // Public self coordinates are authoritative when fresh; the platform fallback is local-only.
         if (me.isPresent() && !selfStale) local = me.get().position();
         if (local == null || local.world().isBlank()) {
             previous.clear(); movement.clear();
-            return new View(exposure.state(),List.of(),events,true,false);
+            return new View(exposure.state(),List.of(),events,true,false,List.of());
         }
         if (!local.world().equals(localWorld)) { previous.clear(); movement.clear(); localWorld = local.world(); lastFeed = 0; }
         boolean newFeed = feed.receivedAt() > lastFeed || config != lastConfig;
@@ -88,11 +90,19 @@ public final class ThreatEngine {
         }
         movement.retain(current.keySet());
         previous.clear(); previous.putAll(current); lastFeed = Math.max(lastFeed,feed.receivedAt());
-        updateAffiliations(snapshot,local,now,config,events);
+        for(String id:visible) if(!current.containsKey(id)) markers.remove("player:"+id);
+        for(Assessment a:current.values()) if(a.kind().priority<2 || a.radius()==Radius.OUTSIDE) markers.remove("player:"+a.player().identity().key());
+        for(Assessment a:current.values()) if(a.kind().priority>=2 && a.radius()!=Radius.OUTSIDE && !a.stale()) {
+            String key="player:"+a.player().identity().key();
+            markers.put(key,new ThreatMarker(key,a.player().identity(),a.player().position(),MarkerType.LIVE,a.player().identity().name()+" | public map",a.outlawCount(),a.lastSeenAt(),a.lastSeenAt()+config.expireSeconds*1000L));
+        }
+        updateAffiliations(snapshot,self,local,now,config,events);
         var nearby = current.values().stream().filter(a -> a.radius() != Radius.OUTSIDE)
-            .sorted(Comparator.<Assessment>comparingInt(a -> a.kind().priority).reversed().thenComparingDouble(Assessment::distance)).toList();
+            .sorted(ThreatPresentation.ORDER).toList();
         events.sort(Comparator.comparingInt(Alert::priority).reversed());
-        return new View(exposure.state(),nearby,events,true,true);
+        Set<String> fresh=new HashSet<>();
+        current.values().stream().filter(a -> !a.stale()).forEach(a -> fresh.add(a.player().identity().key()));
+        return new View(exposure.state(),nearby,events,true,true,markerView(fresh,local,now,config));
     }
     public static Kind classify(boolean known, boolean automatic, boolean watched) {
         EnumSet<Kind> kinds = EnumSet.of(Kind.ORDINARY);
@@ -104,9 +114,13 @@ public final class ThreatEngine {
         return c.ignoreTown && !self.town().isBlank() && self.town().equalsIgnoreCase(other.town()) || c.ignoreNation && !self.nation().isBlank() && self.nation().equalsIgnoreCase(other.nation());
     }
     private boolean shouldAlert(Kind kind, HunterAlertConfig c) { return kind.priority >= 2 || kind == Kind.WATCHED && c.watchedAlerts || kind == Kind.ORDINARY && c.ordinaryAlerts; }
-    private void updateAffiliations(Snapshot s, Position local, long now, HunterAlertConfig c, List<Alert> events) {
+    private void updateAffiliations(Snapshot s,Identity self, Position local, long now, HunterAlertConfig c, List<Alert> events) {
+        List<Position> references=new ArrayList<>(List.of(local));
+        Profile own=s.profiles().get(Models.key(self.name()));
+        if(own!=null && now-own.updatedAt()<=15*60_000L) s.towns().stream().filter(t -> !own.town().isBlank() && t.name().equalsIgnoreCase(own.town()) && t.anchor().world().equals(local.world())).map(Town::anchor).forEach(references::add);
         Set<String> retained = new HashSet<>();
         for (Profile profile : s.profiles().values()) {
+            if(self.matches(profile.identity())) continue;
             boolean known = c.tracked(profile.identity(),Kind.KNOWN);
             boolean auto = c.automatic && s.outlawCounts().getOrDefault(Models.key(profile.identity().name()),0) >= c.minimumOutlawTowns;
             if ((!known && !auto) || now-profile.updatedAt() > 15*60_000L) continue;
@@ -114,23 +128,29 @@ public final class ThreatEngine {
             Profile old = affiliations.put(id,profile);
             if (old == null || profile.updatedAt() <= old.updatedAt()) continue;
             if (!old.town().equalsIgnoreCase(profile.town()) && (known ? c.knownTownChanges : c.automaticTownChanges))
-                affiliation(s,local,now,c,events,profile,old.town(),profile.town(),false);
+                affiliation(s,references,now,c,events,profile,old.town(),profile.town(),false);
             if (!old.nation().equalsIgnoreCase(profile.nation()) && (known ? c.knownNationChanges : c.automaticNationChanges))
-                affiliation(s,local,now,c,events,profile,old.nation(),profile.nation(),true);
+                affiliation(s,references,now,c,events,profile,old.nation(),profile.nation(),true);
         }
-        affiliations.keySet().retainAll(retained);
+        affiliations.entrySet().removeIf(e -> now-e.getValue().updatedAt()>15*60_000L);
     }
-    private void affiliation(Snapshot s,Position local,long now,HunterAlertConfig c,List<Alert> events,Profile p,String old,String next,boolean nation) {
+    private void affiliation(Snapshot s,List<Position> references,long now,HunterAlertConfig c,List<Alert> events,Profile p,String old,String next,boolean nation) {
         String type = nation ? "nation" : "town";
         Town nearest = null; double distance = Double.POSITIVE_INFINITY;
         for (Town town : s.towns()) {
             if (!(nation ? town.nation() : town.name()).equalsIgnoreCase(next) || next.isBlank()) continue;
-            var d = local.distance(town.anchor());
-            if (d.isPresent() && d.getAsDouble() < distance) { distance = d.getAsDouble(); nearest = town; }
+            for(Position reference:references) {
+                var d = reference.distance(town.anchor());
+                if (d.isPresent() && d.getAsDouble() < distance) { distance = d.getAsDouble(); nearest = town; }
+            }
         }
         if (!next.isBlank() && (nearest == null || distance > c.affiliationRadius)) return;
         String message = p.identity().name()+" changed "+type+": "+(old.isBlank()?"none":old)+" -> "+(next.isBlank()?"none":next)+". ";
-        if (nearest != null) message += "Nearest "+nearest.name()+": "+Math.round(distance)+" blocks ("+nearest.anchorKind()+"). ";
+        if (nearest != null) {
+            message += "Nearest "+nearest.name()+": "+Math.round(distance)+" blocks from you or your town ("+nearest.anchorKind()+"). ";
+            String key="affiliation:"+p.identity().key()+":"+type;
+            markers.put(key,new ThreatMarker(key,p.identity(),nearest.anchor(),MarkerType.AFFILIATION,p.identity().name()+" -> "+nearest.name()+" | affiliation clue",s.outlawCounts().getOrDefault(Models.key(p.identity().name()),0),now,now+c.affiliationMarkerSeconds*1000L));
+        }
         message += "Affiliation does not confirm physical location. Player map location: "+(s.feed().players().stream().anyMatch(m -> m.identity().matches(p.identity())) ? "see public map" : "UNKNOWN");
         emit(events,now,"player:"+p.identity().key()+":affiliation-"+type+":"+Models.key(next),"AFFILIATION WARNING",message,3,c);
     }
@@ -138,5 +158,11 @@ public final class ThreatEngine {
         Alert alert = new Alert(now,key,title,message,priority);
         if (alerts.accept(alert,c.cooldownSeconds*1000L)) events.add(alert);
     }
-    public void reset() { exposure.reset(); movement.clear(); alerts.clear(); previous.clear(); affiliations.clear(); localWorld=""; lastFeed=0; suspended=false; lastConfig=null; }
+    private List<ThreatMarker> markerView(Set<String> fresh,Position local,long now,HunterAlertConfig config) {
+        markers.entrySet().removeIf(e -> now>=e.getValue().expiresAt() || !(config.tracked(e.getValue().identity(),Kind.KNOWN) || config.automatic && e.getValue().outlaws()>=config.minimumOutlawTowns));
+        return markers.values().stream().filter(m -> local!=null && local.world().equals(m.position().world()))
+            .map(m -> m.type()==MarkerType.LIVE && !fresh.contains(m.identity().key()) ? new ThreatMarker(m.key(),m.identity(),m.position(),MarkerType.LAST_SEEN,m.identity().name()+" | last public position; location unknown",m.outlaws(),m.observedAt(),m.expiresAt()) : m)
+            .sorted(Comparator.<ThreatMarker>comparingInt(m -> m.type()==MarkerType.AFFILIATION ? 0 : 1).thenComparing(Comparator.comparingInt(ThreatMarker::outlaws).reversed())).limit(64).toList();
+    }
+    public void reset() { exposure.reset(); movement.clear(); alerts.clear(); previous.clear(); affiliations.clear(); markers.clear(); localWorld=""; lastFeed=0; suspended=false; lastConfig=null; }
 }

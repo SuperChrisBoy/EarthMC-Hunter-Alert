@@ -46,7 +46,7 @@ public final class EmcMapAddonDataProvider implements EarthMcDataProvider {
             for(String world:worlds) towns.put(world,api.getTowns(world));
         }
         raw = new Raw(api,Map.copyOf(towns),players,outlaws,now);
-        if (sharedEarthApi != null && !trackedLoading && now-lastTrackedRefresh >= 300_000) {
+        if (sharedEarthApi != null && !trackedLoading && now-lastTrackedRefresh >= 60_000) {
             Set<String> names = new LinkedHashSet<>();
             config.tracked.stream().filter(HunterAlertConfig.Tracked::enabled).forEach(t -> names.add(t.identity().name()));
             outlaws.forEach((name,count) -> { if (count.length > 0 && count[0] >= config.minimumOutlawTowns) names.add(name); });

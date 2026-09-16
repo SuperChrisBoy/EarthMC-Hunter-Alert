@@ -1,0 +1,19 @@
+﻿[00:52:19] [Render thread/INFO] (HunterAlertSmoke) TITLE_READY
+[00:52:19] [Render thread/INFO] (HunterAlertSmoke) OPTIONAL_HUD_MIXINS_LOADED
+[00:52:19] [Render thread/INFO] (HunterAlertSmoke) THREAT_WAYPOINT_PASS: live/last-seen/clue, dimension scale, expiry, user waypoint preservation
+[00:52:19] [ForkJoinPool.commonPool-worker-1/INFO] (HunterAlertSmoke) FEED_BRIDGE_PASS: valid, world, 304, 503, malformed, empty; shared API hook present
+[00:52:21] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=0 screen=TitleScreen
+[00:52:21] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-0.png
+[00:52:24] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=1 screen=SettingsScreen
+[00:52:24] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-1.png
+[00:52:27] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=2 screen=HunterManagerScreen
+[00:52:27] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-2.png
+[00:52:30] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=3 screen=HistoryScreen
+[00:52:30] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-3.png
+[00:52:33] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=4 screen=HudEditorScreen
+[00:52:33] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-4.png
+[00:52:36] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=5 screen=
+[00:52:36] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-5.png
+[00:52:39] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=6 screen=
+[00:52:39] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-6.png
+[00:52:40] [Render thread/INFO] (HunterAlertSmoke) SMOKE_PASS: title, settings, management, history, HUD editor and HUD rendered

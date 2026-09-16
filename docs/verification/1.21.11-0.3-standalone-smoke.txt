@@ -1,0 +1,16 @@
+﻿[00:54:46] [Render thread/INFO] (HunterAlertSmoke) TITLE_READY
+[00:54:47] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=0 screen=TitleScreen
+[00:54:48] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-0.png
+[00:54:50] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=1 screen=SettingsScreen
+[00:54:50] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-1.png
+[00:54:53] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=2 screen=HunterManagerScreen
+[00:54:53] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-2.png
+[00:54:56] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=3 screen=HistoryScreen
+[00:54:56] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-3.png
+[00:54:59] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=4 screen=HudEditorScreen
+[00:54:59] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-4.png
+[00:55:02] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=5 screen=
+[00:55:02] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-5.png
+[00:55:05] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=6 screen=
+[00:55:05] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-6.png
+[00:55:07] [Render thread/INFO] (HunterAlertSmoke) SMOKE_PASS: title, settings, management, history, HUD editor and HUD rendered
