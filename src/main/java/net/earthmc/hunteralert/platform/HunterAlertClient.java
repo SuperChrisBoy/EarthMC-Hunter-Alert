@@ -33,7 +33,6 @@ public final class HunterAlertClient implements ClientModInitializer {
     public final AtomicReference<View> view = new AtomicReference<>(View.empty());
     public volatile boolean active;
     public long flashUntil;
-    private final net.earthmc.hunteralert.integration.map.ThreatMapLayer mapLayer=OptionalMixinPlugin.addon() ? new AddonThreatMapLayer() : null;
     private final ThreatEngine engine=new ThreatEngine();
     private final EarthMcDataProvider provider=OptionalMixinPlugin.addon() ? new EmcMapAddonDataProvider() : new DirectEarthMcDataProvider();
     private final ExecutorService worker=Executors.newSingleThreadExecutor(r -> { Thread t=new Thread(r,"HunterAlert-detection"); t.setDaemon(true); return t; });
@@ -53,7 +52,7 @@ public final class HunterAlertClient implements ClientModInitializer {
             tick(client);
         });
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("hunteralert","hud"),(context,counter) -> { WorldThreatMarkers.render(context,this); hud.render(context); });
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { if(mapLayer!=null) mapLayer.clear(); worker.shutdownNow(); provider.close(); store.close(); });
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { worker.shutdownNow(); provider.close(); store.close(); });
         LoggerFactory.getLogger("HunterAlert").info("Initialized EarthMC data provider");
     }
     public static boolean earthHost(String address) {
@@ -67,7 +66,6 @@ public final class HunterAlertClient implements ClientModInitializer {
         Object currentConnection=client.getConnection();
         if(connected != active || connection != currentConnection) {
             active=connected; connection=currentConnection; session++;
-            if(mapLayer!=null) mapLayer.clear();
             provider.reset(); EmcMapAddonBridge.reset(); view.set(View.empty()); worker.execute(engine::reset);
         }
         if(!active) return;
@@ -87,7 +85,6 @@ public final class HunterAlertClient implements ClientModInitializer {
                 client.execute(() -> {
                     if(generation != session || !active) return;
                     view.set(next); store.append(next.events());
-                    if(mapLayer!=null) { if(config.mapHighlights) mapLayer.publish(next.markers(),local,config.maximum); else mapLayer.clear(); }
                     upgradeIdentities(next);
                     for(Alert alert:next.events()) notify(client,alert,config);
                 });
@@ -121,6 +118,7 @@ public final class HunterAlertClient implements ClientModInitializer {
         if(config.flash) flashUntil=System.currentTimeMillis()+1800;
         if(config.chat && client.player != null) client.gui.getChat().addClientSystemMessage(Component.literal("[Hunter Alert] "+alert.title()+": "+alert.message()));
         if(config.toast) SystemToast.add(client.getToastManager(),SystemToast.SystemToastId.PERIODIC_NOTIFICATION,Component.literal(alert.title()),Component.literal(alert.message()));
-        if(config.sound) client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvent.createVariableRangeEvent(Identifier.parse(config.soundId)),1,config.soundVolume));
+        var cue=net.earthmc.hunteralert.alert.AlertSounds.forAlert(alert,config);
+        if(config.sound) client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvent.createVariableRangeEvent(Identifier.parse(cue.id())),cue.pitch(),config.soundVolume));
     }
 }

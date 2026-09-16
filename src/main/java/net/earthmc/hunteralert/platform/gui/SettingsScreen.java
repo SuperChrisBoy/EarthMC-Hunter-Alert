@@ -19,7 +19,7 @@ public final class SettingsScreen extends Screen {
         new Section("Exposure","showExposure","exposureRiseSeconds","exposureFallSeconds","exposureTimer","exposedAlert","hiddenAlert"),
         new Section("Movement","movement","approachingThreshold","minimumMovement","movementWindowSeconds"),
         new Section("Affiliation Alerts","knownTownChanges","knownNationChanges","automaticTownChanges","automaticNationChanges","affiliationRadius"),
-        new Section("Notifications","sound","toast","chat","flash","soundId","soundVolume","cooldownSeconds"),
+        new Section("Notifications","sound","toast","chat","flash","soundId","exposureSoundId","threatSoundId","soundVolume","cooldownSeconds"),
         new Section("HUD","mapHighlights","worldMarkers","affiliationMarkerSeconds","hud","avoidHudOverlap","compact","hudScale","opacity","hudX","hudY","maxEntries"),
         new Section("Advanced","staleSeconds","expireSeconds","historyLimit","debug")
     );
@@ -67,7 +67,7 @@ public final class SettingsScreen extends Screen {
         button("Save & close",width/2-100,height-30,125,() -> { if(save()) onClose(); });
         button("Cancel",width/2+30,height-30,70,this::onClose);
     }
-    private static String label(String field) { String s=field.replaceAll("([a-z])([A-Z])","$1 $2"); return Character.toUpperCase(s.charAt(0))+s.substring(1); }
+    private static String label(String field) { if(field.equals("worldMarkers")) return "World labels (standalone)"; String s=field.replaceAll("([a-z])([A-Z])","$1 $2"); return Character.toUpperCase(s.charAt(0))+s.substring(1); }
     private boolean commitInputs() {
         try {
             for(var entry:inputs.entrySet()) {

@@ -10,7 +10,7 @@ import java.util.*;
 public final class WorldThreatMarkers {
     public static void render(GuiGraphicsExtractor ctx,HunterAlertClient mod) {
         var client=Minecraft.getInstance(); var c=mod.store.config();
-        if(!mod.active || !c.worldMarkers || client.player==null || client.screen!=null || client.options.hideGui) return;
+        if(net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("townymapaddon") || !mod.active || !c.worldMarkers || client.player==null || client.screen!=null || client.options.hideGui) return;
         Position local=mod.localMapPosition(client);
         if(local==null) return;
         draw(ctx,mod.view.get().markers(),local,client.gameRenderer.getMainCamera().yRot(),client.gameRenderer.getMainCamera().xRot(),client.options.fov().get());
