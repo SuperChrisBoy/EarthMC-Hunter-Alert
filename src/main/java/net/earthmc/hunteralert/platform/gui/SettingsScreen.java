@@ -16,11 +16,11 @@ public final class SettingsScreen extends Screen {
         new Section("General","enabled","sound","toast","chat"),
         new Section("Detection","critical","warning","awareness","maximum","ordinaryAlerts","watchedAlerts","leaveAlerts","ignoreTown","ignoreNation"),
         new Section("Automatic Hunters","automatic","minimumOutlawTowns"),
-        new Section("Exposure","showExposure","exposureTimer","exposedAlert","hiddenAlert"),
+        new Section("Exposure","showExposure","exposureRiseSeconds","exposureFallSeconds","exposureTimer","exposedAlert","hiddenAlert"),
         new Section("Movement","movement","approachingThreshold","minimumMovement","movementWindowSeconds"),
         new Section("Affiliation Alerts","knownTownChanges","knownNationChanges","automaticTownChanges","automaticNationChanges","affiliationRadius"),
         new Section("Notifications","sound","toast","chat","flash","soundId","soundVolume","cooldownSeconds"),
-        new Section("HUD","hud","avoidHudOverlap","compact","hudScale","opacity","hudX","hudY","maxEntries"),
+        new Section("HUD","mapHighlights","worldMarkers","affiliationMarkerSeconds","hud","avoidHudOverlap","compact","hudScale","opacity","hudX","hudY","maxEntries"),
         new Section("Advanced","staleSeconds","expireSeconds","historyLimit","debug")
     );
     private final Screen parent;
@@ -89,6 +89,6 @@ public final class SettingsScreen extends Screen {
         for(var entry:inputs.entrySet()) {
             ctx.text(font,label(entry.getKey().getName()),left,entry.getValue().getY()+6,0xFFDDDDDD,false); i++;
         }
-        ctx.centeredText(font,error.isEmpty()?"Public map data only. Friends filter / direct map layers unavailable.":error,width/2,height-49,error.isEmpty()?0xFFAAAAAA:0xFFFF7777);
+        ctx.centeredText(font,error.isEmpty()?"Exposure meter, not attack odds. Clues are not locations.":error,width/2,height-49,error.isEmpty()?0xFFAAAAAA:0xFFFF7777);
     }
 }

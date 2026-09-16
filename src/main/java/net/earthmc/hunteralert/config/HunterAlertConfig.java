@@ -11,6 +11,9 @@ public final class HunterAlertConfig implements Cloneable {
     public boolean automatic = true;
     public int minimumOutlawTowns = 10;
     public boolean showExposure = true, exposureTimer = true, exposedAlert = true, hiddenAlert = false;
+    public int exposureRiseSeconds=60, exposureFallSeconds=120;
+    public boolean mapHighlights=true, worldMarkers=true;
+    public int affiliationMarkerSeconds=300;
     public boolean movement = true;
     public double minimumMovement = 30, approachingThreshold = 60;
     public int movementWindowSeconds = 10, staleSeconds = 15, expireSeconds = 120, cooldownSeconds = 30;
@@ -30,6 +33,9 @@ public final class HunterAlertConfig implements Cloneable {
     }
 
     public void validate() {
+        exposureRiseSeconds=Math.clamp(exposureRiseSeconds,1,3600);
+        exposureFallSeconds=Math.clamp(exposureFallSeconds,1,3600);
+        affiliationMarkerSeconds=Math.clamp(affiliationMarkerSeconds,30,1800);
         critical = finite(critical,500,1,1_000_000);
         warning = finite(warning,1500,critical,1_000_000);
         awareness = finite(awareness,3000,warning,1_000_000);

@@ -17,8 +17,8 @@ public final class DirectEarthMcDataProvider implements EarthMcDataProvider {
     private final ExecutorService feeds=lane("map"), intelligence=lane("intelligence");
     private volatile Feed feed=Feed.unavailable();
     private volatile Snapshot details=new Snapshot(feed,List.of(),Map.of(),Map.of(),0);
-    private long generation, nextFeed, nextDetails;
-    private boolean feedBusy, detailsBusy, closed;
+    private long generation, nextFeed, nextDetails, nextProfiles;
+    private boolean feedBusy, detailsBusy, profilesBusy, closed;
     private String etag;
     private volatile String localName="";
     @Override public void localIdentity(Identity identity) { localName=identity.name(); }
@@ -38,6 +38,32 @@ public final class DirectEarthMcDataProvider implements EarthMcDataProvider {
             int minimum=config.automatic ? config.minimumOutlawTowns : Integer.MAX_VALUE;
             intelligence.execute(() -> refreshDetails(token,names,minimum));
         }
+        if(!detailsBusy && !profilesBusy && details.intelligenceAt()>0 && now>=nextProfiles) {
+            profilesBusy=true; nextProfiles=now+60_000;
+            var names=config.tracked.stream().filter(HunterAlertConfig.Tracked::enabled).map(t -> t.identity().name()).toList();
+            int minimum=config.automatic ? config.minimumOutlawTowns : Integer.MAX_VALUE;
+            intelligence.execute(() -> refreshProfiles(token,names,minimum));
+        }
+    }
+    private void refreshProfiles(long token,List<String> tracked,int minimum) {
+        try {
+            Set<String> wanted=new LinkedHashSet<>(tracked);
+            if(!localName.isBlank()) wanted.add(localName);
+            details.outlawCounts().forEach((name,count) -> { if(count>=minimum) wanted.add(name); });
+            feed.players().forEach(p -> wanted.add(p.identity().name()));
+            List<String> names=new ArrayList<>(wanted); Map<String,Profile> profiles=new HashMap<>();
+            for(int offset=0;offset<names.size();offset+=100) {
+                var batch=fetch("players",names.subList(offset,Math.min(offset+100,names.size())),token).getAsJsonArray();
+                long now=System.currentTimeMillis();
+                for(var e:batch) {
+                    var p=e.getAsJsonObject(); String name=text(p,"name");
+                    if(name.isBlank() || !p.has("town") || !p.has("nation")) continue;
+                    profiles.put(Models.key(name),new Profile(Identity.of(text(p,"uuid"),name),reference(p,"town"),reference(p,"nation"),now));
+                }
+            }
+            synchronized(this) { if(current(token)) { var old=details; details=new Snapshot(old.feed(),old.towns(),profiles,old.outlawCounts(),old.intelligenceAt()); } }
+        } catch(Exception ignored) { /* Missing API results do not imply a departure. */ }
+        finally { synchronized(this) { profilesBusy=false; } }
     }
     private synchronized boolean current(long token) { return !closed && generation==token; }
     private void refreshFeed(long token) {
@@ -116,7 +142,7 @@ public final class DirectEarthMcDataProvider implements EarthMcDataProvider {
                     profiles.put(Models.key(name),new Profile(Identity.of(text(p,"uuid"),name),reference(p,"town"),reference(p,"nation"),now));
                 }
             }
-            synchronized(this) { if(current(token)) { details=new Snapshot(Feed.unavailable(),towns,profiles,outlaws,System.currentTimeMillis()); nextDetails=System.currentTimeMillis()+600_000; } }
+            synchronized(this) { if(current(token)) { details=new Snapshot(Feed.unavailable(),towns,profiles,outlaws,System.currentTimeMillis()); nextDetails=System.currentTimeMillis()+600_000; nextProfiles=System.currentTimeMillis()+60_000; } }
         } catch(Exception error) {
             synchronized(this) { if(current(token)) nextDetails=Math.max(nextDetails,System.currentTimeMillis()+60_000); }
         } finally { synchronized(this) { detailsBusy=false; } }
@@ -140,7 +166,7 @@ public final class DirectEarthMcDataProvider implements EarthMcDataProvider {
             if(response.statusCode()==429) {
                 long retry=60;
                 try { retry=Long.parseLong(response.headers().firstValue("Retry-After").orElse("60")); } catch(NumberFormatException ignored) {}
-                synchronized(this) { if(current(token)) nextDetails=Math.max(nextDetails,System.currentTimeMillis()+Math.clamp(retry,60,3600)*1000); }
+                synchronized(this) { if(current(token)) { long until=System.currentTimeMillis()+Math.clamp(retry,60,3600)*1000; nextDetails=Math.max(nextDetails,until); nextProfiles=Math.max(nextProfiles,until); } }
             }
             if(response.statusCode()!=200) throw new IllegalStateException("API HTTP "+response.statusCode());
             return JsonParser.parseString(read(body));
@@ -152,6 +178,6 @@ public final class DirectEarthMcDataProvider implements EarthMcDataProvider {
     private static String reference(JsonObject o,String key) { return o.has(key) && o.get(key).isJsonObject() ? text(o.getAsJsonObject(key),"name") : ""; }
     public static String world(String value) { return switch(value) { case "earth","minecraft:overworld","minecraft:the_nether" -> "minecraft_overworld"; case "moon","earthmc:moon" -> "earthmc_moon"; case "minecraft:the_end" -> ""; default -> value; }; }
     @Override public Snapshot snapshot() { var d=details; return new Snapshot(feed,d.towns(),d.profiles(),d.outlawCounts(),d.intelligenceAt()); }
-    @Override public synchronized void reset() { generation++; feed=Feed.unavailable(); details=new Snapshot(feed,List.of(),Map.of(),Map.of(),0); etag=null; nextFeed=nextDetails=0; }
+    @Override public synchronized void reset() { generation++; feed=Feed.unavailable(); details=new Snapshot(feed,List.of(),Map.of(),Map.of(),0); etag=null; nextFeed=nextDetails=nextProfiles=0; }
     @Override public synchronized void close() { closed=true; generation++; feeds.shutdownNow(); intelligence.shutdownNow(); http.shutdownNow(); }
 }

@@ -29,6 +29,7 @@ final class SmokeProbe {
                     LoggerFactory.getLogger("HunterAlertSmoke").info("OPTIONAL_HUD_MIXINS_LOADED");
                 } catch(ClassNotFoundException e) { throw new AssertionError(e); }
             }
+            if(net.earthmc.hunteralert.platform.mixin.OptionalMixinPlugin.addon()) AddonThreatMapLayer.smokeCheck();
             feedTest=net.earthmc.hunteralert.platform.mixin.OptionalMixinPlugin.addon() ? FeedIntegrationProbe.start() : java.util.concurrent.CompletableFuture.completedFuture(null);
         }
         ticks++;
@@ -47,7 +48,7 @@ final class SmokeProbe {
             case 5 -> {
                 long now=System.currentTimeMillis();
                 var p=new MapPlayer(new Identity(null,"ExampleHunter"),new Position("terra",-582,-582),now);
-                mod.view.set(new View(new Exposure(Visibility.EXPOSED,now-134_000,now-134_000,0,now-134_000,0),List.of(new Assessment(p,Kind.KNOWN,true,true,false,23,824,"NW",Radius.WARNING,Trend.APPROACHING,-82,10_000,false,now)),List.of(),true,true));
+                mod.view.set(new View(new Exposure(Visibility.EXPOSED,now-134_000,now-134_000,0,now-134_000,0,73),List.of(new Assessment(p,Kind.KNOWN,true,true,false,23,824,"NW",Radius.WARNING,Trend.APPROACHING,-82,10_000,false,now)),List.of(),true,true,List.of(new ThreatMarker("clue",p.identity(),new Position("terra",100,200),MarkerType.AFFILIATION,"ExampleHunter -> NearTown | affiliation clue",23,now,now+300_000))));
                 HunterHud hud=new HunterHud(mod); mod.active=true; hud.refresh(now);
                 client.setScreen(new Screen(Component.literal("Synthetic HUD smoke fixture")) {
                     @Override public void extractRenderState(GuiGraphicsExtractor ctx,int mx,int my,float delta) { super.extractRenderState(ctx,mx,my,delta);
@@ -62,7 +63,19 @@ final class SmokeProbe {
                 });
             }
             case 6 -> {
-                if(!feedTest.isDone()) { stage=5; ticks=59; return; }
+                long now=System.currentTimeMillis();
+                var id=new Identity(null,"MapHunter");
+                var fixtures=List.of(new ThreatMarker("live",id,new Position("terra",25,100),MarkerType.LIVE,"Public map",40,now,now+60_000),new ThreatMarker("last",new Identity(null,"HiddenHunter"),new Position("terra",-30,100),MarkerType.LAST_SEEN,"Last public position",25,now-20_000,now+60_000));
+                client.setScreen(new Screen(Component.literal("Public map marker fixture")) {
+                    @Override public void extractRenderState(GuiGraphicsExtractor ctx,int mx,int my,float delta) {
+                        super.extractRenderState(ctx,mx,my,delta);
+                        ctx.text(client.font,"Public map X/Z bearings - height unknown",8,16,0xFFFFFFFF,false);
+                        WorldThreatMarkers.draw(ctx,fixtures,new Position("terra",0,0),0,0,70);
+                    }
+                });
+            }
+            case 7 -> {
+                if(!feedTest.isDone()) { stage=6; ticks=59; return; }
                 feedTest.join();
                 mod.active=false; LoggerFactory.getLogger("HunterAlertSmoke").info("SMOKE_PASS: title, settings, management, history, HUD editor and HUD rendered"); client.stop();
             }
