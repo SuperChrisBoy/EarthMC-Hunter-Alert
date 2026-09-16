@@ -20,6 +20,10 @@ public final class ThreatEngine {
     private HunterAlertConfig lastConfig;
 
     public View update(Snapshot snapshot, Identity self, Position local, long now, HunterAlertConfig config) {
+        // Apply trust changes before stale-feed handling or departure detection.
+        previous.values().removeIf(a -> config.tracked(a.player().identity(),Kind.FRIENDLY));
+        markers.values().removeIf(m -> config.tracked(m.identity(),Kind.FRIENDLY));
+        affiliations.values().removeIf(p -> config.tracked(p.identity(),Kind.FRIENDLY));
         List<Alert> events = new ArrayList<>();
         Feed feed = snapshot.feed();
         boolean healthy = config.enabled && feed.healthy() && feed.receivedAt() > 0 && now >= feed.receivedAt() && now-feed.receivedAt() <= config.staleSeconds*1000L;
@@ -55,7 +59,7 @@ public final class ThreatEngine {
         Profile selfProfile = snapshot.profiles().get(Models.key(self.name()));
         Set<String> visible = new HashSet<>();
         for (MapPlayer player : feed.players()) {
-            if (self.matches(player.identity())) continue;
+            if (self.matches(player.identity()) || config.tracked(player.identity(),Kind.FRIENDLY)) continue;
             String id = player.identity().key(); visible.add(id);
             OptionalDouble distance = local.distance(player.position());
             if (distance.isEmpty() || now-player.updatedAt() > config.expireSeconds*1000L) continue;
@@ -120,7 +124,7 @@ public final class ThreatEngine {
         if(own!=null && now-own.updatedAt()<=15*60_000L) s.towns().stream().filter(t -> !own.town().isBlank() && t.name().equalsIgnoreCase(own.town()) && t.anchor().world().equals(local.world())).map(Town::anchor).forEach(references::add);
         Set<String> retained = new HashSet<>();
         for (Profile profile : s.profiles().values()) {
-            if(self.matches(profile.identity())) continue;
+            if(self.matches(profile.identity()) || c.tracked(profile.identity(),Kind.FRIENDLY)) continue;
             boolean known = c.tracked(profile.identity(),Kind.KNOWN);
             boolean auto = c.automatic && s.outlawCounts().getOrDefault(Models.key(profile.identity().name()),0) >= c.minimumOutlawTowns;
             if ((!known && !auto) || now-profile.updatedAt() > 15*60_000L) continue;

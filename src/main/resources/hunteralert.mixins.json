@@ -9,7 +9,8 @@
     "MinimapBoundsMixin",
     "HudTextBoundsMixin",
     "AddonMapMixin",
-    "AddonSettingsMixin"
+    "AddonSettingsMixin",
+    "ActionBarMixin"
   ],
   "injectors": {
     "defaultRequire": 1

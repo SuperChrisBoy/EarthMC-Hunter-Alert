@@ -1,0 +1,24 @@
+[01:22:38] [Render thread/INFO] (HunterAlertSmoke) TITLE_READY
+[01:22:38] [Render thread/INFO] (HunterAlertSmoke) OPTIONAL_HUD_MIXINS_LOADED
+[01:22:38] [ForkJoinPool.commonPool-worker-1/INFO] (HunterAlertSmoke) FEED_BRIDGE_PASS: valid, world, 304, 503, malformed, empty; shared API hook present
+[01:22:39] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=0 screen=TitleScreen
+[01:22:39] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-0.png
+[01:22:42] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=1 screen=SettingsScreen
+[01:22:42] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-1.png
+[01:22:45] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=2 screen=HunterManagerScreen
+[01:22:45] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-2.png
+[01:22:48] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=3 screen=HistoryScreen
+[01:22:48] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-3.png
+[01:22:52] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=4 screen=HudEditorScreen
+[01:22:52] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-4.png
+[01:22:54] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=5 screen=
+[01:22:54] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-5.png
+[01:22:57] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=6 screen=
+[01:22:58] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-6.png
+[01:23:01] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=7 screen=TownyMapConfigScreen
+[01:23:01] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-7.png
+[01:23:02] [Render thread/INFO] (HunterAlertSmoke) ADDON_SETTINGS_PASS: entry, click, return
+[01:23:02] [Render thread/INFO] (HunterAlertSmoke) MOD_MENU_PASS: registered entrypoint and settings factory
+[01:23:06] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=8 screen=SettingsScreen
+[01:23:06] [IO-Worker-1/INFO] (HunterAlertSmoke) SCREENSHOT hunteralert-smoke-8.png
+[01:23:06] [Render thread/INFO] (HunterAlertSmoke) SMOKE_PASS: title, settings, management, history, HUD editor and HUD rendered
