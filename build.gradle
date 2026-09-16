@@ -1,0 +1,31 @@
+plugins { id 'fabric-loom' version '1.14.10' }
+version = project.mod_version
+group = 'net.earthmc.hunteralert'
+base { archivesName = "earthmc-hunter-alert-${project.minecraft_version}" }
+repositories {
+    mavenCentral()
+    maven { url = 'https://api.modrinth.com/maven' }
+    maven { url = 'https://chocolateminecraft.com/maven/' }
+}
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    modImplementation "maven.modrinth:emcmap-addon:${project.addon_version}"
+    modRuntimeOnly 'maven.modrinth:xaeros-minimap:VNYP3B0c'
+    modRuntimeOnly 'maven.modrinth:xaeros-world-map:Jfe3ZJIB'
+    modRuntimeOnly 'xaero.lib:xaerolib-fabric-1.21.11:1.7.3'
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+java { sourceCompatibility = JavaVersion.VERSION_21; targetCompatibility = JavaVersion.VERSION_21; withSourcesJar() }
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 21 }
+test { useJUnitPlatform() }
+loom { runs { client { if (project.hasProperty('smoke')) { vmArg '-Dhunteralert.smoke=true'; runDir 'run/smoke' } } } }
+def resourceVersion = project.version.toString()
+processResources {
+    inputs.property 'version', resourceVersion
+    filesMatching('fabric.mod.json') { expand(version: resourceVersion) }
+}

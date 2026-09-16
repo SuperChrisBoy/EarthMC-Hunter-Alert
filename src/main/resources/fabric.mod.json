@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "hunteralert",
+  "version": "${version}",
+  "name": "EarthMC Hunter Alert",
+  "description": "Public map exposure, hunter alerts and affiliation intelligence using EMC Map Addon data.",
+  "environment": "client",
+  "license": "Apache-2.0",
+  "entrypoints": {"client": ["net.earthmc.hunteralert.platform.HunterAlertClient"]},
+  "mixins": ["hunteralert.mixins.json"],
+  "depends": {"fabricloader": ">=0.18.1", "fabric-api": "*", "minecraft": "1.21.11", "java": ">=21", "townymapaddon": "1.4.5"}
+}

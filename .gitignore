@@ -1,0 +1,9 @@
+.gradle/
+build/
+run/
+.upstream/
+.tools/
+.worktrees/
+*.log
+.idea/
+*.iml
