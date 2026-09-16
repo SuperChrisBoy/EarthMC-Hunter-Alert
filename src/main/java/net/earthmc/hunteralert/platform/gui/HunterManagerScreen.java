@@ -17,7 +17,7 @@ public final class HunterManagerScreen extends Screen {
     private int page;
     private boolean automatic;
     private Identity editingIdentity;
-    public HunterManagerScreen(Screen parent,HunterAlertClient mod) { super(Text.literal("Hunters & watched players")); this.parent=parent; this.mod=mod; }
+    public HunterManagerScreen(Screen parent,HunterAlertClient mod) { super(Text.literal("Known hunters, friendly hunters & watched players")); this.parent=parent; this.mod=mod; }
     private void button(String text,int x,int y,int width,Runnable action) { addDrawableChild(ButtonWidget.builder(Text.literal(text),b -> action.run()).dimensions(x,y,width,20).build()); }
     private TextFieldWidget field(int x,int y,int w,String title,String value) {
         var f=new TextFieldWidget(textRenderer,x,y,w,20,Text.literal(title)); f.setMaxLength(256); f.setText(value); addDrawableChild(f); return f;
@@ -28,8 +28,9 @@ public final class HunterManagerScreen extends Screen {
         name=field(left,40,135,"Player name",nameValue); name.setMaxLength(16);
         note=field(left+140,40,275,"Note",noteValue);
         button("Save known hunter",left,65,135,() -> save(Kind.KNOWN));
-        button("Save watched",left+140,65,110,() -> save(Kind.WATCHED));
-        button(automatic?"Show manual":"Promote automatic",left+255,65,160,() -> { capture(); automatic=!automatic; page=0; clearAndInit(); });
+        button("Save friendly hunter",left+140,65,145,() -> save(Kind.FRIENDLY));
+        button("Save watched",left+290,65,125,() -> save(Kind.WATCHED));
+        button(automatic?"Show manual":"Automatic list",left+190,height-30,130,() -> { capture(); automatic=!automatic; page=0; clearAndInit(); });
         search=field(left,95,320,"Search",query);
         button("Search",left+325,95,90,() -> { capture(); page=0; clearAndInit(); });
         List<HunterAlertConfig.Tracked> entries=automatic ? mod.view.get().nearby().stream().filter(Assessment::automaticHunter).map(a -> new HunterAlertConfig.Tracked(a.player().identity(),Kind.AUTOMATIC,"Outlawed by "+a.outlawCount()+" towns",true)).toList() : mod.store.config().tracked;

@@ -25,6 +25,7 @@ public final class HunterAlertConfig implements Cloneable {
     public String soundId = "minecraft:block.note_block.bell";
     public String exposureSoundId="minecraft:block.note_block.pling", threatSoundId="minecraft:block.note_block.bell";
     public float soundVolume = .7f;
+    public boolean hideDefaultActionBar = true;
     public boolean debug = false;
     public List<Tracked> tracked = new ArrayList<>();
     public record Tracked(Identity identity, Kind kind, String note, boolean enabled) {}
@@ -59,7 +60,7 @@ public final class HunterAlertConfig implements Cloneable {
         if (exposureSoundId == null || !exposureSoundId.matches("[a-z0-9_.-]+:[a-z0-9/._-]+")) exposureSoundId="minecraft:block.note_block.pling";
         if (threatSoundId == null || !threatSoundId.matches("[a-z0-9_.-]+:[a-z0-9/._-]+")) threatSoundId="minecraft:block.note_block.bell";
         if (tracked == null) tracked = new ArrayList<>();
-        tracked = new ArrayList<>(tracked.stream().filter(t -> t != null && t.identity != null && t.identity.name().matches("[A-Za-z0-9_]{1,16}") && (t.kind == Kind.KNOWN || t.kind == Kind.WATCHED)).limit(2000).toList());
+        tracked = new ArrayList<>(tracked.stream().filter(t -> t != null && t.identity != null && t.identity.name().matches("[A-Za-z0-9_]{1,16}") && (t.kind == Kind.KNOWN || t.kind == Kind.WATCHED || t.kind == Kind.FRIENDLY)).limit(2000).toList());
     }
     private static double finite(double n,double fallback,double min,double max) { return Double.isFinite(n) ? Math.clamp(n,min,max) : fallback; }
     public boolean tracked(Identity id, Kind kind) { return tracked.stream().anyMatch(t -> t.enabled && t.kind == kind && t.identity.matches(id)); }

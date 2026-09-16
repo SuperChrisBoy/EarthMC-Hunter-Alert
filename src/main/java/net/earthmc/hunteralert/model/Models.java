@@ -46,7 +46,7 @@ public final class Models {
         public Snapshot { towns = List.copyOf(towns); profiles = Map.copyOf(profiles); outlawCounts = Map.copyOf(outlawCounts); }
     }
     public enum Kind {
-        ORDINARY(0), WATCHED(1), AUTOMATIC(2), KNOWN(3);
+        FRIENDLY(-1), ORDINARY(0), WATCHED(1), AUTOMATIC(2), KNOWN(3);
         public final int priority;
         Kind(int priority) { this.priority = priority; }
     }

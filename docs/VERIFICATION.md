@@ -4,13 +4,21 @@ Verified on Windows, 2026-09-17 (Asia/Tokyo). These results distinguish executab
 
 | Branch | Minecraft tested | Java | Loom | Loader | Fabric API | Build | Unit tests | Feed bridge | Client/UI smoke |
 |---|---|---|---|---|---|---|---|---|---|
-| mc/1.21.11 | 1.21.11 | 21.0.12.1 | 1.14.10 | 0.18.3 | 0.140.0+1.21.11 | PASS | 31/31 | PASS | PASS |
-| mc/26.1.x | 26.1.2 | 25.0.1 | 1.17.9 | 0.19.2 | 0.150.0+26.1.2 | PASS | 31/31 | PASS | PASS |
-| mc/26.2 | 26.2 | 25.0.1 | 1.17.9 | 0.19.3 | 0.152.2+26.2 | PASS | 31/31 | PASS | PASS |
+| mc/1.21.11 | 1.21.11 | 21.0.12.1 | 1.14.10 | 0.18.3 | 0.140.0+1.21.11 | PASS | 36/36 | PASS | PASS |
+| mc/26.1.x | 26.1.2 | 25.0.1 | 1.17.9 | 0.19.2 | 0.150.0+26.1.2 | PASS | 36/36 | PASS | PASS |
+| mc/26.2 | 26.2 | 25.0.1 | 1.17.9 | 0.19.3 | 0.152.2+26.2 | PASS | 36/36 | PASS | PASS |
 
 Every branch ran `gradlew.bat --no-daemon clean build runClient -Psmoke --warning-mode all` and exited successfully. The 26.1.x branch was built and launched on 26.1.2; earlier 26.1 patch releases were not separately launched. The 1.21.11 branch uses Yarn 1.21.11+build.4; the 26.x branches use Minecraft's unobfuscated names with no mappings dependency.
 
 Optional addon tests use EMC Map Addon 1.4.5; standalone and minimap-only tests run without it. Development runtime pins are Xaero Minimap 26.5.0 / World Map 1.46.0 on 1.21.11 and 26.1.2; Minimap 26.5.1 / World Map 1.46.1 on 26.2. XaeroLib 1.7.3 is explicit because Loom's development runtime does not automatically expose that nested JAR. These dependencies are not bundled into Hunter Alert.
+
+## Version 0.3.2 friendly hunters and exact action-bar filter
+
+All three builds pass 36 tests. Added coverage checks friendly precedence over known/automatic hunters with ordinary alerts enabled, stale-feed cleanup, affiliation/last-seen marker removal without false departure alerts, disabling a whitelist entry, UUID/name persistence, and exact action-bar text matching.
+
+The manager now has separate known, friendly and watched save buttons. Existing full-screen map overlays and Mod Menu/addon Settings entry points remain in place. Client smoke checks exercise these real optional integrations and render the updated manager. Standalone startup is checked separately.
+
+The `Default` screenshot resembles an action-bar message, but its producer was not identified. An EarthMC-only, configurable filter suppresses that exact action-bar text at the vanilla HUD render hook. Hook loading is checked in each client; tests check exact matching and preservation of other messages. Removal of the user's specific on-server label remains unverified. The filter intentionally does not suppress arbitrary HUD text. No user game configuration or installed mod JARs were modified.
 
 ## Version 0.3.1 map, settings and audio fixes
 
