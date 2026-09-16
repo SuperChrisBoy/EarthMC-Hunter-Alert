@@ -1,0 +1,10 @@
+﻿[00:20:09] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 26.2 with Fabric Loader 0.19.3
+[00:20:28] [Render thread/INFO] (HunterAlertSmoke) TITLE_READY
+[00:20:29] [ForkJoinPool.commonPool-worker-1/INFO] (HunterAlertSmoke) FEED_BRIDGE_PASS: valid, world, 304, 503, malformed, empty; shared API hook present
+[00:20:30] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=0 screen=TitleScreen
+[00:20:33] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=1 screen=SettingsScreen
+[00:20:36] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=2 screen=HunterManagerScreen
+[00:20:39] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=3 screen=HistoryScreen
+[00:20:42] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=4 screen=HudEditorScreen
+[00:20:45] [Render thread/INFO] (HunterAlertSmoke) RENDERED stage=5 screen=
+[00:20:46] [Render thread/INFO] (HunterAlertSmoke) SMOKE_PASS: title, settings, management, history, HUD editor and HUD rendered

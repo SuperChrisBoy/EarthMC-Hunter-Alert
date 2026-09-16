@@ -25,7 +25,7 @@ Map requests share upstream's polling gate. Outlaw counts reuse its ten-minute r
 
 ## Branches and verification
 
-`main` holds current architecture and documentation; `mc/1.21.11`, `mc/26.1.x`, and `mc/26.2` contain their own build configuration and platform adapter. Shared behavior changes should be carried across branches; do not add runtime version switches.
+`main` holds shared architecture/documentation with 1.21.11 as the reference platform; `mc/1.21.11`, `mc/26.1.x`, and `mc/26.2` contain their own build configuration and platform adapter. Shared behavior changes should be carried across branches; do not add runtime version switches. The local `dist/` directory contains the three tested runtime JARs and SHA-256 checksums.
 
 Use Java 21 for 1.21.11 and Java 25 for 26.x:
 
@@ -35,7 +35,7 @@ Use Java 21 for 1.21.11 and Java 25 for 26.x:
 .\gradlew.bat runClient -Psmoke
 ```
 
-The development-only smoke option uses a separate `run/smoke` directory, renders title/settings/management/history/HUD screens, captures screenshots, and exits. Its HUD uses a clearly synthetic fixture; this is not evidence of a live EarthMC connection. See [verification results](docs/VERIFICATION.md).
+The development-only smoke option uses a separate `run/smoke` directory, exercises the real addon's parser/health hooks with loopback HTTP fixtures, renders title/settings/management/history/HUD screens, captures screenshots, and exits. Its HUD uses a synthetic fixture; this is not evidence of a live EarthMC connection. Each branch passed 18 unit tests plus the integration/client smoke run. See [verification results](docs/VERIFICATION.md).
 
 Unit tests cover distances, radius transitions, threshold boundaries, exposure/outages, movement/jitter/stale data, local-motion rejection, UUID fallback, cooldowns, malformed feeds, session isolation, affiliation semantics and safe persistence.
 
