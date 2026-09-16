@@ -55,10 +55,7 @@ public final class HunterAlertClient implements ClientModInitializer {
         LoggerFactory.getLogger("HunterAlert").info("Initialized EMC Map Addon provider; shared requests and caches enabled");
     }
     public static boolean earthHost(String address) {
-        if(address == null) return false;
-        String host=address.toLowerCase(Locale.ROOT).split(":",2)[0];
-        if(host.endsWith(".")) host=host.substring(0,host.length()-1);
-        return host.equals("earthmc.net") || host.endsWith(".earthmc.net");
+        return net.earthmc.hunteralert.data.ServerIdentity.isEarthMc(address);
     }
     private void tick(MinecraftClient client) {
         if(!store.ready()) return;

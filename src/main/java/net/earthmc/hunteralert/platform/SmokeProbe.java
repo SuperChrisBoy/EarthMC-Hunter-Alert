@@ -15,12 +15,14 @@ final class SmokeProbe {
     private static int ticks,stage;
     private static boolean started;
     private static Screen title;
+    private static java.util.concurrent.CompletableFuture<Void> feedTest;
     static void tick(MinecraftClient client,HunterAlertClient mod) {
         if(!mod.store.ready() || client.getOverlay()!=null) return;
         if(!started) {
             if(!(client.currentScreen instanceof TitleScreen)) { client.setScreen(new TitleScreen()); return; }
             title=client.currentScreen; started=true;
             LoggerFactory.getLogger("HunterAlertSmoke").info("TITLE_READY");
+            feedTest=FeedIntegrationProbe.start();
         }
         ticks++;
         if(ticks==35) {
@@ -44,7 +46,11 @@ final class SmokeProbe {
                     @Override public void render(DrawContext ctx,int mx,int my,float delta) { super.render(ctx,mx,my,delta); hud.render(ctx); }
                 });
             }
-            case 6 -> { mod.active=false; LoggerFactory.getLogger("HunterAlertSmoke").info("SMOKE_PASS: title, settings, management, history, HUD editor and HUD rendered"); client.scheduleStop(); }
+            case 6 -> {
+                if(!feedTest.isDone()) { stage=5; ticks=59; return; }
+                feedTest.join();
+                mod.active=false; LoggerFactory.getLogger("HunterAlertSmoke").info("SMOKE_PASS: title, settings, management, history, HUD editor and HUD rendered"); client.scheduleStop();
+            }
             default -> { }
         }
     }
