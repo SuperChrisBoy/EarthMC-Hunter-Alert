@@ -14,8 +14,12 @@ public final class HunterAlertConfig implements Cloneable {
     public int exposureRiseSeconds=60, exposureFallSeconds=120;
     public boolean mapHighlights=true, worldMarkers=true;
     public int affiliationMarkerSeconds=300;
-    public boolean movement = true;
-    public double minimumMovement = 30, approachingThreshold = 60;
+    public boolean movement = true, approachingPlayers = true, rainAlerts = true;
+    public double minimumMovement = 30, approachingThreshold = 150;
+    public double approachRange=1500;
+    public int approachInstances=3;
+    public boolean pathTrace=true, logView=true;
+    public int logRows=4, logSeconds=60;
     public int movementWindowSeconds = 10, staleSeconds = 15, expireSeconds = 120, cooldownSeconds = 30;
     public boolean knownTownChanges = true, knownNationChanges = true, automaticTownChanges = true, automaticNationChanges = true;
     public double affiliationRadius = 5000;
@@ -45,7 +49,10 @@ public final class HunterAlertConfig implements Cloneable {
         affiliationRadius = finite(affiliationRadius,5000,1,1_000_000);
         minimumOutlawTowns = Math.max(1,minimumOutlawTowns);
         minimumMovement = finite(minimumMovement,30,1,100_000);
-        approachingThreshold = finite(approachingThreshold,60,minimumMovement,100_000);
+        approachingThreshold = finite(approachingThreshold,150,minimumMovement,100_000);
+        approachRange=finite(approachRange,1500,1,1_000_000);
+        approachInstances=Math.clamp(approachInstances,1,20);
+        logRows=Math.clamp(logRows,1,8); logSeconds=Math.clamp(logSeconds,5,600);
         movementWindowSeconds = Math.clamp(movementWindowSeconds,2,60);
         staleSeconds = Math.clamp(staleSeconds,3,120);
         expireSeconds = Math.clamp(expireSeconds,staleSeconds,3600);

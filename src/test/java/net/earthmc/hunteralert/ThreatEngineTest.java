@@ -101,7 +101,7 @@ class ThreatEngineTest {
         var changed=new Snapshot(snapshot(2000).feed(),towns,Map.of("hunter",new Profile(HUNTER,"Kyoto","Japan",2000)),Map.of(),2000);
         View result=e.update(changed,SELF,ORIGIN,2000,c);
         assertTrue(result.nearby().isEmpty()); assertEquals(2,result.events().size());
-        assertTrue(result.events().stream().allMatch(a -> a.title().equals("AFFILIATION WARNING") && a.message().contains("1600") && a.message().contains("UNKNOWN") && a.message().contains("does not confirm")));
+        assertTrue(result.events().stream().allMatch(a -> a.title().equals("AFFILIATION WARNING") && a.message().contains("1600") && a.message().contains("location unconfirmed")));
         assertTrue(e.update(changed,SELF,ORIGIN,2001,c).events().isEmpty());
     }
     @Test void identityUsesUuidAndSupportsNameFallback() {

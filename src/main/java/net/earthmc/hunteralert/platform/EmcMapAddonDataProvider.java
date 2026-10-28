@@ -55,18 +55,17 @@ public final class EmcMapAddonDataProvider implements EarthMcDataProvider {
                 sharedEarthApi.fetchPlayers(new ArrayList<>(names)).whenComplete((result,error) -> {
                     if (error == null && result != null) trackedProfiles.updateAndGet(old -> {
                         long received=System.currentTimeMillis();
-                        Map<String,Profile> next=new HashMap<>(old);
-                        next.entrySet().removeIf(e -> received-e.getValue().updatedAt()>15*60_000L || !names.contains(e.getValue().identity().name()));
-                        next.putAll(normalize(result,received)); return Map.copyOf(next);
+                        Map<String,Profile> next=new HashMap<>();
+                        next.putAll(normalize(result,received,true)); return Map.copyOf(next);
                     });
                     trackedLoading=false;
                 });
             }
         }
     }
-    private static Map<String,Profile> normalize(Map<String,EarthMcPlayerData> source,long at) {
+    private static Map<String,Profile> normalize(Map<String,EarthMcPlayerData> source,long at,boolean explicitRefresh) {
         Map<String,Profile> result = new HashMap<>();
-        source.values().forEach(p -> result.put(Models.key(p.name()),new Profile(Identity.of(p.uuid(),p.name()),p.townName(),p.nationName(),at)));
+        source.values().forEach(p -> result.put(Models.key(p.name()),new Profile(Identity.of(p.uuid(),p.name()),p.townName(),p.nationName(),at,p.online() ? Presence.ONLINE : explicitRefresh && p.lastOnlineMs()>0 ? Presence.OFFLINE : Presence.UNKNOWN)));
         return Map.copyOf(result);
     }
     @Override public String mapWorld(String dimension) { return TownyMapMod.playerWorldResolved(); }
@@ -85,7 +84,7 @@ public final class EmcMapAddonDataProvider implements EarthMcDataProvider {
             });
             normalizedTowns=List.copyOf(towns);
         }
-        if (current.players != lastPlayers) { lastPlayers=current.players; normalizedPlayers=normalize(current.players,current.at); }
+        if (current.players != lastPlayers) { lastPlayers=current.players; normalizedPlayers=normalize(current.players,current.at,false); }
         if (current.outlaws != lastOutlaws) { lastOutlaws=current.outlaws; normalizedOutlaws=OutlawIndex.normalize(current.outlaws); }
         Map<String,Profile> profiles = new HashMap<>(normalizedPlayers);
         trackedProfiles.get().forEach((k,p) -> profiles.merge(k,p,(a,b) -> a.updatedAt() > b.updatedAt() ? a : b));

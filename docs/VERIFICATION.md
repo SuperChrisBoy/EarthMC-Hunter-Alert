@@ -64,3 +64,44 @@ An early run against upstream's older documented Xaero World Map pin (1.41.2) sh
 Authenticated EarthMC multiplayer play was **not** performed. Therefore this is a tested implementation/build delivery, not a claim that every live-server completion criterion has been observed. Verify exposure against the real feed, manual hunter/watch editing while connected, live outlaw/affiliation refresh behavior, notifications in normal gameplay, and extended-session behavior with an authenticated client.
 
 Version 0.3.1 replaces temporary Xaero waypoints with a direct full-screen EarthMC map overlay. Live map display and panning still require authenticated acceptance. No reliable friend-list API was found. Standalone town proximity uses API spawn coordinates; the optional addon provider uses labelled claim bounding centres. Outlaw freshness and incomplete API sweeps inherit the addon's cache behavior. Squaremap has no per-player source timestamp through the current bridge, so an unchanged coordinate's observation time is not proof of a fresh measurement.
+
+## Version 0.3.3 offline alert fix (2026-09-17)
+
+`test build --offline` passed on all three targets: 1.21.11 (Java 21), 26.1.2 and 26.2 (Java 25), with 43 tests each. Seven new regression tests cover explicit offline entry/departure suppression and marker cleanup, server player-list overrides, missing/opted-out status, expired/future evidence, feed outages, informational disappearance, and offline affiliation baselines. Direct parsing distinguishes absent/null/malformed status from explicit true/false.
+
+Recent explicit offline evidence is trusted for at most 90 seconds. The optional addon only derives offline status from freshly requested profiles with a last-online timestamp; cached online-player statistics cannot independently establish offline status. Missing profile responses discard previous status rather than refreshing it. Server player-list absence is never used as proof of logout.
+
+No authenticated multiplayer test or new client smoke run was performed for this change. API polling and upstream caches can delay status changes, and unknown status cannot establish whether a player logged out. Runtime JARs and checksums are in `dist/` under version 0.3.3.
+
+## Version 0.4.0 (2026-09-17)
+
+All three targets (1.21.11 on Java 21; 26.1.2 and 26.2 on Java 25) passed 51 unit tests, distribution builds, and addon-plus-Mod-Menu client smoke checks. New regressions cover ordinary approach thresholds/toggles, high-outlaw approach wording, whitelist exclusion, local motion/stale feed rejection, rain transition/outage handling, cached global candidate thresholds, autocomplete deduplication/identity preservation, and automatic affiliation warnings.
+
+The development UI fixture types a mixed-case prefix, clicks a name suggestion and checks the selected name and threshold-filtered global candidate list. The addon fixture verifies that the settings action is initially absent from General, clicks the Hunter Alert sidebar row, verifies the action becomes visible, opens it, and returns. Screenshots cover the manager, sidebar and synthetic rain HUD. The sidebar entry was moved directly below General after visual inspection showed that the bottom of the rail is not clickable at small GUI heights. Final logs are retained in `logs/features-0.4.0.log`; screenshots are under `run/smoke/screenshots`.
+
+These are synthetic development checks, not an authenticated multiplayer session. Live rain packets, hunter travel, claims/wilderness status and real affiliation transitions have not been observed in-game. Weather notices deliberately do not infer claim status or remote trident equipment. Cached counts/status may lag live changes. The distribution JARs and SHA-256 checksums are under `dist/` with version 0.4.0.
+
+## Version 0.5.0 (2026-09-18)
+
+All three versions passed 62 unit tests and distribution builds. New coverage includes three independent observations, duplicate feeds, range entry/exit and the overall range cap, cumulative displacement, stopping/reversal, local motion, stale/cross-world data, settings/window changes, whitelist removal, observed paths, log deduplication/expiry/session clearing, layout limits over multiple window sizes/scales, clipped path geometry, and upgrade defaults preserving existing thresholds.
+
+Addon-plus-Mod-Menu smoke checks passed on 1.21.11, 26.1.2 and 26.2. The final 1.21.11 check also passed in standalone mode; final 26.x checks used the addon. Synthetic fixtures render the compact log with two silent observations and a confirmed warning, directional path traces, and the legacy HUD after switching modes. Small-window screenshots were inspected; compact rows were shortened to keep identities/counts/distances visible. Full-map traces are verified with synthetic public positions, not an authenticated live hunter.
+
+Final logs are saved in `logs/approach-0.5.0.log`; screenshots are in `run/smoke/screenshots/`, including `hunteralert-smoke-5.png`, `hunteralert-smoke-6.png`, and `hunteralert-legacy.png`. Runtime JARs and SHA-256 sums are under `dist/` with version 0.5.0. Authenticated multiplayer acceptance remains outstanding.
+
+## Version 0.5.1 (2026-09-18)
+
+All three targets passed 67 unit tests, distribution builds and addon-plus-Mod-Menu client smoke checks. Five additional regressions verify persistent rows without events, coordinate/distance updates, range and view removal, stale labeling/expiry, ellipsis fitting and short exposure messages. Synthetic screenshots verify the pinned hunter location above the bounded alert log. Logs are in `awareness-smoke.log`; screenshots are in `run/smoke/screenshots`. Authenticated multiplayer behavior has not been tested.
+
+## Version 0.5.2 (2026-09-18)
+
+All three targets passed 73 unit tests, distribution builds and addon-plus-Mod-Menu smoke checks. Six new tests cover complete affiliation messages across widths, long unbroken names and Unicode, explicit paragraphs, pinned rows across pages, tiny page capacities and cycling. Synthetic small-window screenshots include a long affiliation message and active flash; these were inspected for wrapping, contrast and minimap separation. Logs: `wrapping-smoke.log`. No authenticated multiplayer test was performed.
+
+## Version 0.5.3: entry dividers
+
+All three targets passed the existing 73 tests, distribution builds and addon-plus-Mod-Menu client smoke checks. Small-window HUD screenshots were inspected for dividers between entries without lines crossing wrapped message text. Logs: `divider-smoke.log`. No authenticated multiplayer test was performed.
+
+## Version 0.5.4 (2026-09-28)
+
+All three targets passed 76 tests and distribution builds. Regression coverage includes keeping the compact log out of the minimap column, naming distant affiliation changes, existing online hunter affiliation proximity, offline suppression, and local movement into hunter range between feed refreshes. Addon-plus-Mod-Menu client smoke checks passed on all three targets; HUD screenshots were inspected for placement and the fixed yellow dynmap timer. The final proximity change was then rebuilt and unit tested on all targets. Logs: hud-status-build.log and hud-status-smoke.log. No authenticated multiplayer test was performed.
+

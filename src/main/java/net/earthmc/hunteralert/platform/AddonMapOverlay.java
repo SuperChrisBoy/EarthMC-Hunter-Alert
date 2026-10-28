@@ -12,6 +12,7 @@ public final class AddonMapOverlay {
     public static void render(DrawContext ctx,double cameraX,double cameraZ,double scale,int width,int height) {
         var mod=HunterAlertClient.INSTANCE;
         if(mod==null || !mod.active || !mod.store.config().enabled || !mod.store.config().mapHighlights || !TownyMapMod.isActiveOnCurrentServer() || TownyMapMod.isArchiveMode() || TownyMapMod.hideChromeForScreenshot()) return;
+        if(mod.store.config().pathTrace) PathTraceRenderer.map(ctx,mod.view.get().approaches(),TownyMapMod.activeWorldKey(),cameraX,cameraZ,scale,width,height,System.currentTimeMillis(),mod.store.config().staleSeconds);
         draw(ctx,mod.view.get().markers(),TownyMapMod.activeWorldKey(),cameraX,cameraZ,scale,width,height,System.currentTimeMillis());
     }
     static void draw(DrawContext ctx,List<ThreatMarker> markers,String world,double cameraX,double cameraZ,double scale,int width,int height,long now) {
