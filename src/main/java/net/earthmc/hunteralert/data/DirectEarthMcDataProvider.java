@@ -58,7 +58,7 @@ public final class DirectEarthMcDataProvider implements EarthMcDataProvider {
                 for(var e:batch) {
                     var p=e.getAsJsonObject(); String name=text(p,"name");
                     if(name.isBlank() || !p.has("town") || !p.has("nation")) continue;
-                    profiles.put(Models.key(name),new Profile(Identity.of(text(p,"uuid"),name),reference(p,"town"),reference(p,"nation"),now));
+                    profiles.put(Models.key(name),new Profile(Identity.of(text(p,"uuid"),name),reference(p,"town"),reference(p,"nation"),now,parsePresence(p)));
                 }
             }
             synchronized(this) { if(current(token)) { var old=details; details=new Snapshot(old.feed(),old.towns(),profiles,old.outlawCounts(),old.intelligenceAt()); } }
@@ -139,7 +139,7 @@ public final class DirectEarthMcDataProvider implements EarthMcDataProvider {
                 for(var e:batch) {
                     var p=e.getAsJsonObject(); String name=text(p,"name");
                     if(name.isBlank() || !p.has("town") || !p.has("nation")) continue;
-                    profiles.put(Models.key(name),new Profile(Identity.of(text(p,"uuid"),name),reference(p,"town"),reference(p,"nation"),now));
+                    profiles.put(Models.key(name),new Profile(Identity.of(text(p,"uuid"),name),reference(p,"town"),reference(p,"nation"),now,parsePresence(p)));
                 }
             }
             synchronized(this) { if(current(token)) { details=new Snapshot(Feed.unavailable(),towns,profiles,outlaws,System.currentTimeMillis()); nextDetails=System.currentTimeMillis()+600_000; nextProfiles=System.currentTimeMillis()+60_000; } }
@@ -158,7 +158,7 @@ public final class DirectEarthMcDataProvider implements EarthMcDataProvider {
             Map<String,Object> template=new LinkedHashMap<>();
             template.put("name",true); template.put("uuid",true); template.put("nation",true);
             if(endpoint.equals("towns")) { template.put("coordinates",true); template.put("outlaws",true); }
-            else template.put("town",true);
+            else { template.put("town",true); template.put("status",true); }
             request.header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(new Gson().toJson(Map.of("query",names,"template",template))));
         }
         var response=http.send(request.build(),HttpResponse.BodyHandlers.ofInputStream());
@@ -174,6 +174,13 @@ public final class DirectEarthMcDataProvider implements EarthMcDataProvider {
     }
     private static HttpRequest.Builder request(URI uri) { return HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(15)).header("User-Agent","EarthMC-Hunter-Alert/0.2.0").header("Accept","application/json"); }
     private static String read(java.io.InputStream stream) throws java.io.IOException { byte[] bytes=stream.readNBytes(8_000_001); if(bytes.length>8_000_000) throw new java.io.IOException("Response too large"); return new String(bytes,java.nio.charset.StandardCharsets.UTF_8); }
+    public static Presence parsePresence(JsonObject player) {
+        var status=player.get("status");
+        if(status==null || !status.isJsonObject()) return Presence.UNKNOWN;
+        var online=status.getAsJsonObject().get("isOnline");
+        if(online==null || !online.isJsonPrimitive() || !online.getAsJsonPrimitive().isBoolean()) return Presence.UNKNOWN;
+        return online.getAsBoolean() ? Presence.ONLINE : Presence.OFFLINE;
+    }
     private static String text(JsonObject o,String key) { return o.has(key) && o.get(key).isJsonPrimitive() ? o.get(key).getAsString() : ""; }
     private static String reference(JsonObject o,String key) { return o.has(key) && o.get(key).isJsonObject() ? text(o.getAsJsonObject(key),"name") : ""; }
     public static String world(String value) { return switch(value) { case "earth","minecraft:overworld","minecraft:the_nether" -> "minecraft_overworld"; case "moon","earthmc:moon" -> "earthmc_moon"; case "minecraft:the_end" -> ""; default -> value; }; }
