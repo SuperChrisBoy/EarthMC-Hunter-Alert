@@ -31,8 +31,15 @@ public final class HunterAlertClient implements ClientModInitializer {
     public static HunterAlertClient INSTANCE;
     public LocalStore store;
     public final AtomicReference<View> view = new AtomicReference<>(View.empty());
-    public volatile boolean active;
+    public volatile boolean active, raining;
+    volatile Snapshot suggestionSnapshot=new Snapshot(Feed.unavailable(),List.of(),Map.of(),Map.of(),0);
+    private volatile List<Identity> onlineNames=List.of();
+    private volatile Identity localIdentity;
+    public List<net.earthmc.hunteralert.data.PlayerSuggestions.Entry> suggestions(String prefix,boolean candidates) {
+        return net.earthmc.hunteralert.data.PlayerSuggestions.find(suggestionSnapshot,onlineNames,store.config(),localIdentity,prefix,candidates);
+    }
     public long flashUntil;
+    public final net.earthmc.hunteralert.alert.CompactAlertLog alertLog=new net.earthmc.hunteralert.alert.CompactAlertLog();
     private final ThreatEngine engine=new ThreatEngine();
     private final EarthMcDataProvider provider=OptionalMixinPlugin.addon() ? new EmcMapAddonDataProvider() : new DirectEarthMcDataProvider();
     private final ExecutorService worker=Executors.newSingleThreadExecutor(r -> { Thread t=new Thread(r,"HunterAlert-detection"); t.setDaemon(true); return t; });
@@ -66,25 +73,33 @@ public final class HunterAlertClient implements ClientModInitializer {
         Object currentConnection=client.getConnection();
         if(connected != active || connection != currentConnection) {
             active=connected; connection=currentConnection; session++;
-            provider.reset(); EmcMapAddonBridge.reset(); view.set(View.empty()); worker.execute(engine::reset);
+            provider.reset(); EmcMapAddonBridge.reset(); view.set(View.empty()); alertLog.clear(); raining=false; onlineNames=List.of(); localIdentity=null; suggestionSnapshot=new Snapshot(Feed.unavailable(),List.of(),Map.of(),Map.of(),0); worker.execute(engine::reset);
         }
         if(!active) return;
         long now=System.currentTimeMillis();
+        raining=client.level.isRaining() && client.level.dimension().equals(Level.OVERWORLD);
         hud.refresh(now);
         if(now-lastTick < 250 || !busy.compareAndSet(false,true)) return;
         lastTick=now;
         Identity self=new Identity(client.player.getUUID(),client.player.getName().getString());
+        localIdentity=self;
         provider.localIdentity(self);
         try { provider.tick(now,config); }
         catch(RuntimeException error) { busy.set(false); LoggerFactory.getLogger("HunterAlert").warn("EarthMC data capture failed",error); return; }
         Position local=localMapPosition(client);
+        List<Identity> online=client.getConnection().getOnlinePlayers().stream()
+            .map(entry -> new Identity(entry.getProfile().id(),entry.getProfile().name())).toList();
+        onlineNames=online;
+        boolean wet=raining;
         int generation=session;
         worker.execute(() -> {
             try {
-                View next=engine.update(provider.snapshot(),self,local,now,config);
+                Snapshot snapshot=provider.snapshot();
+                View next=engine.update(snapshot,self,local,now,config,online,wet);
                 client.execute(() -> {
                     if(generation != session || !active) return;
-                    view.set(next); store.append(next.events());
+                    suggestionSnapshot=snapshot;
+                    view.set(next); store.append(next.events()); alertLog.accept(next,config.approachInstances);
                     upgradeIdentities(next);
                     for(Alert alert:next.events()) notify(client,alert,config);
                 });
@@ -117,7 +132,7 @@ public final class HunterAlertClient implements ClientModInitializer {
         if(config.debug) LoggerFactory.getLogger("HunterAlert").info("{}: {}",alert.key(),alert.message());
         if(config.flash) flashUntil=System.currentTimeMillis()+1800;
         if(config.chat && client.player != null) client.gui.hud.getChat().addClientSystemMessage(Component.literal("[Hunter Alert] "+alert.title()+": "+alert.message()));
-        if(config.toast) SystemToast.add(client.gui.toastManager(),SystemToast.SystemToastId.PERIODIC_NOTIFICATION,Component.literal(alert.title()),Component.literal(alert.message()));
+        if(config.toast && !config.logView) SystemToast.add(client.gui.toastManager(),SystemToast.SystemToastId.PERIODIC_NOTIFICATION,Component.literal(alert.title()),Component.literal(alert.message()));
         var cue=net.earthmc.hunteralert.alert.AlertSounds.forAlert(alert,config);
         if(config.sound) client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvent.createVariableRangeEvent(Identifier.parse(cue.id())),cue.pitch(),config.soundVolume));
     }

@@ -34,7 +34,9 @@ public final class Models {
         }
     }
     public record MapPlayer(Identity identity, Position position, long updatedAt) {}
-    public record Profile(Identity identity, String town, String nation, long updatedAt) {
+    public enum Presence { ONLINE, OFFLINE, UNKNOWN }
+    public record Profile(Identity identity, String town, String nation, long updatedAt, Presence presence) {
+        public Profile(Identity identity, String town, String nation, long updatedAt) { this(identity,town,nation,updatedAt,Presence.UNKNOWN); }
         public Profile { town = town == null ? "" : town; nation = nation == null ? "" : nation; }
     }
     public record Town(String name, String nation, Position anchor, String anchorKind) {}
@@ -65,9 +67,13 @@ public final class Models {
     public record ThreatMarker(String key, Identity identity, Position position, MarkerType type, String label, int outlaws, long observedAt, long expiresAt) {
         public int color() { return type==MarkerType.AFFILIATION ? 0xFFFFCC55 : type==MarkerType.LAST_SEEN ? 0xFFAAAAAA : 0xFFFF5555; }
     }
-    public record View(Exposure exposure, List<Assessment> nearby, List<Alert> events, boolean healthy, boolean locationKnown, List<ThreatMarker> markers) {
+    public record Approach(Identity identity, int instances, double distance, long observedAt, boolean hunter, List<Position> path) {
+        public Approach { path=List.copyOf(path); }
+    }
+    public record View(Exposure exposure, List<Assessment> nearby, List<Alert> events, boolean healthy, boolean locationKnown, List<ThreatMarker> markers, List<Approach> approaches) {
+        public View(Exposure exposure,List<Assessment> nearby,List<Alert> events,boolean healthy,boolean locationKnown,List<ThreatMarker> markers) { this(exposure,nearby,events,healthy,locationKnown,markers,List.of()); }
         public View(Exposure exposure,List<Assessment> nearby,List<Alert> events,boolean healthy,boolean locationKnown) { this(exposure,nearby,events,healthy,locationKnown,List.of()); }
-        public View { nearby = List.copyOf(nearby); events = List.copyOf(events); markers=List.copyOf(markers); }
+        public View { nearby = List.copyOf(nearby); events = List.copyOf(events); markers=List.copyOf(markers); approaches=List.copyOf(approaches); }
         public static View empty() { return new View(Exposure.unknown(), List.of(), List.of(), false, false); }
     }
 }

@@ -13,6 +13,7 @@ public final class WorldThreatMarkers {
         if(net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("townymapaddon") || !mod.active || !c.worldMarkers || client.player==null || client.gui.screen()!=null || client.gui.hud.isHidden()) return;
         Position local=mod.localMapPosition(client);
         if(local==null) return;
+        if(c.pathTrace) PathTraceRenderer.world(ctx,mod.view.get().approaches(),local,client.gameRenderer.mainCamera().yRot(),client.gameRenderer.mainCamera().xRot(),client.options.fov().get(),System.currentTimeMillis(),c.staleSeconds);
         draw(ctx,mod.view.get().markers(),local,client.gameRenderer.mainCamera().yRot(),client.gameRenderer.mainCamera().xRot(),client.options.fov().get());
     }
     static void draw(GuiGraphicsExtractor ctx,List<ThreatMarker> markers,Position local,double yaw,double pitch,double fov) {

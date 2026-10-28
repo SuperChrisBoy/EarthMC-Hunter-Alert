@@ -7,19 +7,24 @@ import java.util.*;
 import net.earthmc.hunteralert.detection.ThreatPresentation;
 import net.earthmc.hunteralert.api.HudObstacles;
 
-/** All strings, sorting and layout are prepared on ticks; render only draws cached lines. */
+/** Tick-prepared legacy content with responsive wrapping and pagination at render time. */
 public final class HunterHud {
-    private record Line(String text,int color) {}
+    private record Line(String text,int color,boolean divider) {
+        Line(String text,int color) { this(text,color,false); }
+    }
     private final HunterAlertClient mod;
     private List<Line> lines=List.of();
     private int width=220;
     private long refreshed;
+    private long pageStarted;
+    private String pageKey="";
     public HunterHud(HunterAlertClient mod) { this.mod=mod; }
     public void refresh(long now) {
         if(now-refreshed < 250) return;
         refreshed=now;
         var c=mod.store.config(); var view=mod.view.get(); var e=view.exposure();
         List<Line> next=new ArrayList<>();
+        if(mod.raining && c.rainAlerts) next.add(new Line("RAIN: fast Riptide travel | wilderness risk",0xFFFFCC55));
         String status=switch(e.state()) { case EXPOSED -> "MAP EXPOSED"; case HIDDEN -> "MAP HIDDEN"; case UNKNOWN -> "MAP STATUS UNKNOWN"; };
         status="EXPOSURE "+Math.round(e.percent())+"% | "+status+(e.state()==Visibility.UNKNOWN ? " (paused)" : "");
         long seconds=Math.max(0,(now-e.since())/1000);
@@ -60,21 +65,80 @@ public final class HunterHud {
         if(!mod.active || !c.hud || client.gui.hud.isHidden()) return;
         int screenW=ctx.guiWidth(),screenH=ctx.guiHeight();
         double scale=c.hudScale;
-        List<HudObstacles.Rect> occupied=new ArrayList<>(c.avoidHudOverlap ? HudObstacles.snapshot() : List.of());
+        long now=System.currentTimeMillis();
+        List<Line> fixed=new ArrayList<>(), pinned=new ArrayList<>(), content=new ArrayList<>();
+        String title="HUNTER ALERT";
+        if(c.logView) {
+            title="HUNTER LOG"+(mod.raining && c.rainAlerts ? " | RAIN" : "")+(!mod.view.get().healthy() ? " | map stale" : "");
+            var exposure=mod.view.get().exposure();
+            long seconds=Math.max(0,(now-exposure.since())/1000);
+            String timer=String.format(Locale.ROOT,"%02d:%02d",seconds/60,seconds%60);
+            fixed.add(new Line(switch(exposure.state()) {
+                case EXPOSED -> "Dynmap: EXPOSED " + timer;
+                case HIDDEN -> "Dynmap: HIDDEN " + timer;
+                case UNKNOWN -> "Dynmap: UNKNOWN";
+            },exposure.state()==Visibility.EXPOSED ? 0xFFFFFF55 : exposure.state()==Visibility.HIDDEN ? 0xFF77DD99 : 0xFFBBBBBB,true));
+            var awareness=net.earthmc.hunteralert.detection.AwarenessHud.rows(mod.view.get(),c,now);
+            for(var hunter:awareness) {
+                int color=hunter.stale()?0xFFCCCCCC:0xFFFFBB66;
+                pinned.add(new Line(hunter.identity(),color,true));
+                pinned.add(new Line(hunter.location(),color));
+            }
+            for(var entry:mod.alertLog.recent(now,c.logSeconds,c.logRows))
+                content.add(new Line(Math.max(0,(now-entry.at())/1000)+"s "+entry.text(),entry.priority()>=2 ? 0xFFFFBB66 : 0xFFDDDDDD,true));
+            if(pinned.isEmpty() && content.isEmpty()) content.add(new Line("No recent alerts",0xFFCCCCCC));
+        } else content.addAll(lines);
+        List<HudObstacles.Rect> occupied=new ArrayList<>(c.avoidHudOverlap ? (c.logView ? HudObstacles.logObstacles(screenH) : HudObstacles.snapshot()) : List.of());
         if(c.avoidHudOverlap) occupied.add(new HudObstacles.Rect(Math.max(0,screenW/2-100),Math.max(0,screenH-65),200,65));
+        int preferredWidth=Math.max(40,(int)(Math.min(360,screenW*.48)/scale));
+        int panelWidth=preferredWidth;
+        List<Line> display=List.of();
         HudObstacles.Rect placement=null;
-        while(scale>=.49) {
-            placement=HudObstacles.place(screenW,screenH,(int)Math.ceil(width*scale),(int)Math.ceil((lines.size()*12+12)*scale),(int)(c.hudX*c.hudScale),(int)(c.hudY*c.hudScale),occupied);
-            if(placement!=null) break;
-            scale-=.05;
+        String key=c.logView+":"+screenW+":"+screenH+":"+scale;
+        if(!key.equals(pageKey)) { pageKey=key; pageStarted=now; }
+        // Try readable widths and fewer visible rows before surrendering overlap avoidance.
+        // Pagination preserves all text even when only a few rows fit beside another HUD.
+        for(int candidate=0;candidate<3 && placement==null;candidate++) {
+            panelWidth=Math.min((int)(screenW/scale),Math.max(40,preferredWidth-candidate*preferredWidth/5));
+            int available=Math.max(1,panelWidth-16);
+            var wrappedFixed=wrap(fixed,available,client.font::width);
+            var wrappedPinned=wrap(pinned,available,client.font::width);
+            var wrappedContent=wrap(content,available,client.font::width);
+            int maxRows=Math.max(2,(int)(screenH*.4/scale/12)-1);
+            for(int rows=maxRows;rows>=2;rows--) {
+                // Reserve enough header space for the page indicator before choosing the body.
+                var header=net.earthmc.hunteralert.detection.WrappedHud.wrap(title+" | 99/99",available,client.font::width);
+                int capacity=rows-header.size()-wrappedFixed.size();
+                if(capacity<1) continue;
+                var page=net.earthmc.hunteralert.detection.WrappedHud.page(wrappedPinned,wrappedContent,capacity,now-pageStarted);
+                List<Line> proposed=new ArrayList<>();
+                for(String line:net.earthmc.hunteralert.detection.WrappedHud.wrap(title+(page.count()>1?" | "+page.number()+"/"+page.count():""),available,client.font::width)) proposed.add(new Line(line,0xFFFFFFFF));
+                proposed.addAll(wrappedFixed);
+                proposed.addAll(page.lines());
+                placement=HudObstacles.place(screenW,screenH,(int)Math.ceil(panelWidth*scale),(int)Math.ceil((proposed.size()*12+12)*scale),(int)(c.hudX*c.hudScale),(int)(c.hudY*c.hudScale),occupied);
+                if(placement!=null) { display=proposed; break; }
+            }
         }
         if(placement==null) return;
         ctx.pose().pushMatrix(); ctx.pose().translate(placement.x(),placement.y()); ctx.pose().scale((float)scale,(float)scale);
         int x=0,y=0;
-        int color=((int)(255*c.opacity)<<24)|(System.currentTimeMillis()<mod.flashUntil ? 0x772222 : 0x111820);
-        ctx.fill(x,y,x+width,y+lines.size()*12+12,color);
+        int color=((int)(255*Math.max(c.logView?.92:0,c.opacity))<<24)|0x111820;
+        ctx.fill(x,y,x+panelWidth,y+display.size()*12+12,color);
+        if(now<mod.flashUntil) ctx.fill(x,y,x+2,y+display.size()*12+12,0xFFFFAA55);
         int row=y+6;
-        for(Line line:lines) { ctx.text(client.font,line.text(),x+8,row,line.color(),true); row+=12; }
+        for(Line line:display) { if(line.divider()) ctx.fill(x+8,row-2,x+panelWidth-8,row-1,0xFF596773); ctx.text(client.font,line.text(),x+8,row,line.color(),true); row+=12; }
         ctx.pose().popMatrix();
     }
+    private static List<Line> wrap(List<Line> source,int width,java.util.function.ToIntFunction<String> measure) {
+        List<Line> result=new ArrayList<>();
+        for(var line:source) {
+            boolean first=true;
+            for(String part:net.earthmc.hunteralert.detection.WrappedHud.wrap(line.text(),width,measure)) {
+                result.add(new Line(part,line.color(),first && line.divider()));
+                first=false;
+            }
+        }
+        return result;
+    }
+
 }

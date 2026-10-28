@@ -20,6 +20,14 @@ class StandaloneAndLayoutTest {
             assertTrue(result.right()<=800 && result.bottom()<=450);
         }
     }
+    @Test void logReservesEntireMinimapColumn() {
+        HudObstacles.publish("xaero",new Rect(4,4,255,305));
+        var obstacles=HudObstacles.logObstacles(650);
+        var result=HudObstacles.place(850,650,350,200,12,12,obstacles);
+        assertNotNull(result); assertTrue(result.x()>259);
+        assertNull(HudObstacles.place(500,650,350,200,12,12,obstacles));
+        HudObstacles.publish("xaero",new Rect(0,0,0,0));
+    }
     @Test void preservesFreePreferenceAndDeclinesImpossibleLayout() {
         assertEquals(new Rect(15,25,100,50),HudObstacles.place(800,450,100,50,15,25,List.of()));
         assertNull(HudObstacles.place(200,150,100,50,0,0,List.of(new Rect(0,0,200,150))));

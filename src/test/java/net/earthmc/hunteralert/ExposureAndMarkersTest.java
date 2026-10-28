@@ -52,7 +52,7 @@ class ExposureAndMarkersTest {
         var result=e.update(snapshot(2000,List.of(),towns,next,Map.of("hunter",40)),SELF,away,2000,c);
         assertEquals(2,result.events().size()); assertTrue(result.nearby().isEmpty());
         assertEquals(2,result.markers().size()); assertTrue(result.markers().stream().allMatch(m -> m.type()==MarkerType.AFFILIATION && m.position().equals(towns.get(1).anchor())));
-        assertTrue(result.events().stream().allMatch(a -> a.message().contains("UNKNOWN") && a.message().contains("does not confirm")));
+        assertTrue(result.events().stream().allMatch(a -> a.message().contains("location unconfirmed")));
         assertTrue(e.update(snapshot(400_000,List.of(),towns,next,Map.of("hunter",40)),SELF,away,400_000,c).markers().isEmpty());
     }
     @Test void distantOrCrossWorldAffiliationDoesNotGenerateClue() {
@@ -61,8 +61,30 @@ class ExposureAndMarkersTest {
             var towns=List.of(new Town("Distant","Nation",anchor,"spawn"));
             e.update(snapshot(1000,List.of(),towns,Map.of("hunter",new Profile(HUNTER,"Old","",1000)),Map.of("hunter",20)),SELF,HOME,1000,c);
             var view=e.update(snapshot(2000,List.of(),towns,Map.of("hunter",new Profile(HUNTER,"Distant","Nation",2000)),Map.of("hunter",20)),SELF,HOME,2000,c);
-            assertTrue(view.events().isEmpty()); assertTrue(view.markers().isEmpty());
+            assertEquals(2,view.events().size()); assertTrue(view.events().stream().allMatch(a -> a.message().contains("joined"))); assertTrue(view.markers().isEmpty());
         }
+    }
+    @Test void localMovementIntoHunterRangeAlertsBetweenFeedRefreshes() {
+        var e=new ThreatEngine(); var c=new HunterAlertConfig();
+        var p=new MapPlayer(HUNTER,new Position("earth",100,0),1000);
+        var snapshot=snapshot(1000,List.of(p),List.of(),Map.of(),Map.of("hunter",40));
+        assertTrue(e.update(snapshot,SELF,new Position("earth",20000,0),1000,c).events().isEmpty());
+        var near=e.update(snapshot,SELF,HOME,1500,c);
+        assertTrue(near.events().stream().anyMatch(a -> a.title().equals("HUNTER DETECTED")));
+        assertEquals(MarkerType.LIVE,near.markers().getFirst().type());
+        assertTrue(e.update(snapshot,SELF,HOME,1600,c).events().isEmpty());
+    }
+    @Test void onlineHunterExistingTownWarnsWhenUserEntersRange() {
+        var e=new ThreatEngine(); var c=new HunterAlertConfig(); c.affiliationRadius=500;
+        var towns=List.of(new Town("Near","",new Position("earth",200,0),"spawn"));
+        var profiles=Map.of("hunter",new Profile(HUNTER,"Near","",1000,Presence.ONLINE));
+        var snapshot=snapshot(1000,List.of(),towns,profiles,Map.of("hunter",40));
+        assertTrue(e.update(snapshot,SELF,new Position("earth",10000,0),1000,c).events().isEmpty());
+        var near=e.update(snapshot,SELF,HOME,2000,c);
+        assertEquals(1,near.events().size());
+        assertTrue(near.events().getFirst().message().contains("Near"));
+        assertEquals(MarkerType.AFFILIATION,near.markers().getFirst().type());
+        assertTrue(e.update(snapshot,SELF,HOME,3000,c).events().isEmpty());
     }
     @Test void projectedMapBearingRespectsYawPitchAndBehindCamera() {
         var ahead=MarkerProjection.project(0,100,0,0,70,800,450); assertNotNull(ahead); assertEquals(400,ahead.x(),.01); assertEquals(225,ahead.y(),.01);

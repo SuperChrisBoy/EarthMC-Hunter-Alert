@@ -19,6 +19,14 @@ public final class HudObstacles {
         long now=System.nanoTime(); entries.values().removeIf(e -> now-e.at>1_000_000_000L);
         return entries.values().stream().map(Entry::rect).toList();
     }
+    /** Reserve the minimap column so the log cannot jump underneath its information lines. */
+    public static synchronized List<Rect> logObstacles(int screenHeight) {
+        snapshot();
+        return entries.entrySet().stream().map(e -> {
+            Rect r=e.getValue().rect();
+            return e.getKey().equals("xaero") ? new Rect(r.x(),0,r.width(),screenHeight) : r;
+        }).toList();
+    }
     public static void begin() { if(depth++==0) captured=null; }
     public static boolean capturing() { return depth>0; }
     public static void include(Rect rect) { if(capturing()) captured=captured==null ? rect : captured.union(rect); }
